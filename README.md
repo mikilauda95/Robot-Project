@@ -3,4 +3,4 @@ The makefile is here to make it easier for us to compile the program. Instead of
 The makefile should of course be updated as the project grows. As of now the makefile only builds tester.c
 
 
-We should always work on branches (maybe except for the first few commits), and create pull-request that should be reviewed before beeing merged with the master branch.
+We should always work on branches (maybe except for the first few commits), and create pull-request that should be reviewed before being merged with the master branch.
