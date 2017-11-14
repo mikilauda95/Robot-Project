@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <mqueue.h>
+#include "messages.h"
 
 #define MAX_MSG 15
 #define OVER 37
@@ -8,44 +8,39 @@
 #define MQ_SIZE 10
 #define PMODE 0666
 
-mqd_t mqfd_movement;
 /* to open the message queue */
-void init_queue (int open_flags) {
+mqd_t init_queue (char* mq_name, int open_flags) {
     struct mq_attr attr;
     // fill attributes of the mq
     attr.mq_maxmsg = MQ_SIZE;
     attr.mq_msgsize = sizeof (int);
     attr.mq_flags = 0;
     
-    mqfd_movement = mq_open(MQ_NAME, open_flags, PMODE, &attr);
+    mqd_t mqfd =  mq_open(mq_name, open_flags, PMODE, &attr);
 
-    if (mqfd_movement == (mqd_t)-1) {
+    if (mqfd == (mqd_t)-1) {
         perror("Mq opening failed");
         exit(-1);
     }
+    return mqfd;
 }
 
 /* to add an integer to the message queue */
-void put_integer_in_mq (int data) {
+void put_integer_in_mq (mqd_t mqfd, int data) {
   int status;
    //sends message
-  status = mq_send (mqfd_movement, (char *) &data, sizeof (int), 1);
+  status = mq_send (mqfd, (char *) &data, sizeof (int), 1);
   if (status == -1)
     perror ("mq_send failure");
 }
 
  /* to get an integer from message queue */
-int get_integer_from_mq () {
+int get_integer_from_mq (mqd_t mqfd) {
   ssize_t num_bytes_received = 0;
   int data=0;
    //receive an int from mq
-  num_bytes_received = mq_receive (mqfd_movement, (char *) &data, sizeof (int), NULL);
+  num_bytes_received = mq_receive (mqfd, (char *) &data, sizeof (int), NULL);
   if (num_bytes_received == -1)
     perror ("mq_receive failure");
   return (data);
-}
-
-int messages_init() {
-    init_queue(O_CREAT | O_RDWR);
-    return 0;
 }

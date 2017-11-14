@@ -11,12 +11,13 @@
 int main (){
 
     if ( ev3_init() == -1 ) return ( 1 );
-    messages_init();
+
     pid_t movement = fork();
     if (movement == 0) { 
         movement_start();
     } else {
-        put_integer_in_mq(3);
+        mqd_t movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
+        put_integer_in_mq(movement_queue, SET_SPEED * 2048 + 599);
         Sleep(200);
     }    
 }
