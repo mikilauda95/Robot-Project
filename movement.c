@@ -4,22 +4,14 @@
 #include "ev3_port.h"
 #include "ev3_tacho.h"
 #include "ev3_sensor.h"
+#include "messages.h"
 
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
-#define MAX_SPEED = 1050
+#define MAX_SPEED 1050
 
-#ifdef __WIN32__
-
-#include <windows.h>
-
-// UNIX //////////////////////////////////////////
-#else
-
-#include <unistd.h>
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-//////////////////////////////////////////////////
-#endif
+
 
 int movement_init(){
     int n_motors = ev3_tacho_init();
@@ -47,6 +39,7 @@ void set_speed(int speed){
 }
 
 void movement_start() {
+    movement_init();
 
     ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &left_motor_sn, 0 );
     ev3_search_tacho_plugged_in(RIGHT_MOTOR_PORT, 0, &right_motor_sn, 0 );
@@ -64,10 +57,12 @@ void movement_start() {
     Sleep(1000);
     stop();
 
-    /*while(1) {
-        
+    while(1) {
+        int message = get_integer_from_mq();
+        printf("got message %d \n", message);
+        Sleep(100);
         // check messages
         // do what main tells me
         // repeat
-    }*/
+    }
 }
