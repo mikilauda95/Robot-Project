@@ -26,21 +26,25 @@ mqd_t init_queue (char* mq_name, int open_flags) {
 }
 
 /* to add an integer to the message queue */
-void put_integer_in_mq (mqd_t mqfd, int data) {
-  int status;
-   //sends message
-  status = mq_send (mqfd, (char *) &data, sizeof (int), 1);
-  if (status == -1)
-    perror ("mq_send failure");
+void put_integer_in_mq(mqd_t mq, int command, int value) {
+    int message = (command<<11) | value; //put the command and the value into the same int.
+    int status;
+    //send message
+    status = mq_send (mq, (char *) &message, sizeof (int), 1);
+    if (status == -1)
+      perror ("mq_send failure");
 }
 
  /* to get an integer from message queue */
-int get_integer_from_mq (mqd_t mqfd) {
-  ssize_t num_bytes_received = 0;
-  int data=0;
-   //receive an int from mq
-  num_bytes_received = mq_receive (mqfd, (char *) &data, sizeof (int), NULL);
-  if (num_bytes_received == -1)
-    perror ("mq_receive failure");
-  return (data);
+void get_integer_from_mq (mqd_t mq, int *command, int *value) {
+    ssize_t num_bytes_received = 0;
+    int data=0;
+    //receive an int from mq
+
+    num_bytes_received = mq_receive(mq, (char *) &data, sizeof (int), NULL);
+    if (num_bytes_received == -1)
+      perror ("mq_receive failure");
+    //decode the message
+    *value = data & 0x7ff;
+    *command = data >> 11;
 }
