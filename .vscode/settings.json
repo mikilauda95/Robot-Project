@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "ev3.h": "c",
+        "ev3_port.h": "c",
+        "messages.h": "c"
+    }
+}
