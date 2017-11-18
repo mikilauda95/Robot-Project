@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "ev3.h"
 #include "ev3_tacho.h"
 #include "messages.h"
@@ -8,14 +9,8 @@
 #define RIGHT_MOTOR_PORT 67
 #define MAX_SPEED 1050
 
-// WIN32
-#ifdef __WIN32__
-#include <windows.h>
-// UNIX 
-#else
-#include <unistd.h>
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-#endif
+
 
 uint8_t left_motor_sn;
 uint8_t right_motor_sn;
@@ -58,8 +53,8 @@ void movement_start() {
     mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
 
     while(1) {
-        int command, value;
-        get_integer_from_mq(movement_queue, &command, &value);
+        uint16_t command, value;
+        get_message(movement_queue, &command, &value);
         if (command == MESSAGE_TURN) {
             stop();
             set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);

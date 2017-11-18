@@ -1,8 +1,0 @@
-<style>
-div, p, ol {
-    font-size: 110%;
-    color: #333333;
-    font-family: Georgia, serif;
-    line-height: 1.5;
-}
-</style>

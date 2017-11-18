@@ -4,7 +4,6 @@
 
 #define MAX_MSG 15
 #define OVER 37
-#define MQ_NAME "/movement"
 #define MQ_SIZE 10
 #define PMODE 0666
 
@@ -26,25 +25,24 @@ mqd_t init_queue (char* mq_name, int open_flags) {
 }
 
 /* to add an integer to the message queue */
-void put_integer_in_mq(mqd_t mq, int command, int value) {
-    int message = (command<<11) | value; //put the command and the value into the same int.
-    int status;
-    //send message
-    status = mq_send (mq, (char *) &message, sizeof (int), 1);
+void send_message(mqd_t mq, uint16_t command, uint16_t value) {
+    uint32_t message = (command<<16) | value; //put the command and the value into the same int.
+
+    int status = mq_send (mq, (char *) &message, sizeof(uint32_t), 1); //sizeof for readability. 4 bytes
     if (status == -1)
       perror ("mq_send failure");
 }
 
  /* to get an integer from message queue */
-void get_integer_from_mq (mqd_t mq, int *command, int *value) {
+void get_message (mqd_t mq, uint16_t *command, uint16_t *value) {
     ssize_t num_bytes_received = 0;
-    int data=0;
-    //receive an int from mq
+    uint32_t data=0;
 
-    num_bytes_received = mq_receive(mq, (char *) &data, sizeof (int), NULL);
+    num_bytes_received = mq_receive(mq, (char *) &data, sizeof(uint32_t), NULL);
     if (num_bytes_received == -1)
       perror ("mq_receive failure");
+    
     //decode the message
-    *value = data & 0x7ff;
-    *command = data >> 11;
+    *value = data & 0x0000ffff;
+    *command = data >> 16;
 }

@@ -24,7 +24,7 @@ void sensors_start(){
         get_sensor_value0(compass_sn, &compass_value );
         get_sensor_value0(sonar_sn, &sonar_value );
         //send to main
-        put_integer_in_mq(sensors_queue, MESSAGE_SONAR, sonar_value);
+        send_message(sensors_queue, MESSAGE_SONAR, (uint16_t)sonar_value);
         Sleep(100);
     }
 }
