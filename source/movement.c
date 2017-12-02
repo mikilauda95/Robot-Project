@@ -111,7 +111,8 @@ void movement_start() {
             double curr_ang;
             //implement two receives for getting the curr position and the current angle
             //
-            int step_degrees=(int)( 360/MAX_SCAN_NUM );
+            int num_scan=value;
+            int step_degrees=(int)( 360/num_scan);
             for (int i = 0; i < MAX_SCAN_NUM; ++i) {
 
                 //need to set right values

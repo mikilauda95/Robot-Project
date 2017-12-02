@@ -77,7 +77,9 @@ int main(int argc, char *argv[]) {
                 if (strcmp(argv[1],"test_scann")==1) {
                     //testing scanning function
                     END=0;
-                    send_message(movement_queue, MESSAGE_SCANN,0);
+                    int num_scan=10;
+                    send_message(movement_queue, MESSAGE_SCANN,num_scan);
+                    send_message(mapping_queue, MESSAGE_SCANN,num_scan);
                     while (!END) { //END IS SET FROM message_handler when it receives the ending
                         get_message(movement_queue, &movement_command, &movement_value);
                         message_handler(sensors_command, sensors_value);

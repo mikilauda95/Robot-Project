@@ -14,6 +14,7 @@
 #define MESSAGE_AVGCOMPASS 13
 #define MESSAGE_END_SCANN 14
 #define MESSAGE_CONTINUE 15
+#define MESSAGE_AVGSONAR 16
 
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, uint16_t value);
