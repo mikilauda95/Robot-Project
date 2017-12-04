@@ -15,6 +15,10 @@
 #define MESSAGE_END_SCANN 14
 #define MESSAGE_CONTINUE 15
 #define MESSAGE_AVGSONAR 16
+#define MESSAGE_TURNDEGREES 17
+#define MESSAGE_DROPOBJ 18
+#define MESSAGE_COLORSENS 19
+#define MESSAGE_START 20
 
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, uint16_t value);
