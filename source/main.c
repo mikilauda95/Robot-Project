@@ -61,21 +61,7 @@ int main() {
         }
         else
         {
-            movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
-            sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
-            sensors_queue = init_queue("/color", O_CREAT | O_RDONLY);
-
-            uint16_t sensors_command, sensors_value, color_value, color_command;
-            while (1)
-            {
-                get_message(sensors_queue, &sensors_command, &sensors_value);
-                message_handler(sensors_command, sensors_value);
-                get_message(color_queue, &color_command, &color_value);
-                color_handler(sensors_command, sensors_value);
-                // the sleeping makes little sense now as the get_integer function blocks until it has received something.
-                // This should probably be changed to nonblocking later though.
-                Sleep(10);
-            }
+            pause();
         }
     }
 }
