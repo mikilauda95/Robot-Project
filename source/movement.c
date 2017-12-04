@@ -5,6 +5,7 @@
 #include "ev3_tacho.h"
 #include "messages.h"
 
+#define ARM_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define MAX_SPEED 1050
@@ -14,10 +15,12 @@
 
 uint8_t left_motor_sn;
 uint8_t right_motor_sn;
+uint8_t arm_motor_sn;
 
 int movement_init(){
     ev3_tacho_init();
 
+    ev3_search_tacho_plugged_in(ARM_MOTOR_PORT, 0, &arm_motor_sn, 0 );
     ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &left_motor_sn, 0 );
     ev3_search_tacho_plugged_in(RIGHT_MOTOR_PORT, 0, &right_motor_sn, 0 );
 
@@ -25,9 +28,11 @@ int movement_init(){
     We have the alternatives COAST, BRAKE, and HOLD. They result in harder/softer breaking */
 	set_tacho_stop_action_inx( left_motor_sn, TACHO_BRAKE );
     set_tacho_stop_action_inx( right_motor_sn, TACHO_BRAKE );
+    set_tacho_stop_action_inx( arm_motor_sn, TACHO_BRAKE );
 
     set_tacho_speed_sp(left_motor_sn, MAX_SPEED * 2 / 3 );
     set_tacho_speed_sp(right_motor_sn, MAX_SPEED * 2 / 3 );
+
 
     return 0;
 }
