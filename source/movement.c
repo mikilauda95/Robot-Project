@@ -37,9 +37,19 @@ void stop(){
     set_tacho_command_inx(left_motor_sn, TACHO_STOP);
     set_tacho_command_inx(right_motor_sn, TACHO_STOP);
 }
+
 void forward(){
     set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
     set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
+}
+
+void turn_degrees(int ang_speed, double angle) {
+     _run_to_rel_pos( ang_speed, -angle*degree_to_lin, ang_speed, angle*degree_to_lin);
+     // Block until the motor is done turning
+     int temp;
+     while (get_tacho_speed_sp(left_motor_sn, *temp) != 0) {
+        Sleep(1);
+     }
 }
 
 void *movement_start() {
@@ -52,7 +62,7 @@ void *movement_start() {
         get_message(movement_queue, &command, &value);
         if (command == MSG_MOV_TURN) {
             stop();
-            set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
+            turn_degrees(20, (double)value);
         } else if (command == MSG_MOV_RUN_FORWARD) {
             forward();
         }
