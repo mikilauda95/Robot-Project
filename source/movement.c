@@ -33,12 +33,14 @@ int movement_init(){
     return 0;
 }
 
-void stop(){
+void stop() {
     set_tacho_command_inx(left_motor_sn, TACHO_STOP);
     set_tacho_command_inx(right_motor_sn, TACHO_STOP);
 }
 
-void forward(){
+void forward(int speed) {
+    set_tacho_speed_sp(left_motor_sn, speed );
+    set_tacho_speed_sp(right_motor_sn, speed );
     set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
     set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
 }
@@ -55,18 +57,21 @@ void turn_degrees(int ang_speed, double angle) {
 void *movement_start() {
 
     movement_init();
-    mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
+    mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDWR);
 
     while(1) {
         uint16_t command, value;
         get_message(movement_queue, &command, &value);
-        if (command == MSG_MOV_TURN) {
-            stop();
-            turn_degrees(20, (double)value);
-        } else if (command == MSG_MOV_RUN_FORWARD) {
-            forward();
+        switch (command) {
+            case MSG_MOV_TURN:
+                stop();
+                turn_degrees(20, (double)value);
+                send_message(movement_queue, MSG_MOV_TURN_COMPLETE, 0);
+                break;
+            case MSG_MOV_RUN_FORWARD:
+                forward(MAX_SPEED * 2/3);
+                break;
         }
-        
         Sleep(10);
     }
 }
