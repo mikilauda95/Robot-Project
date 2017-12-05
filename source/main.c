@@ -51,14 +51,15 @@ int main() {
             sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
 
             uint16_t sensors_command, sensors_value;
-            while (1)
-            {
-                get_message(sensors_queue, &sensors_command, &sensors_value);
-                message_handler(sensors_command, sensors_value);
-                // the sleeping makes little sense now as the get_integer function blocks until it has received something.
-                // This should probably be changed to nonblocking later though.
-                Sleep(10);
-            }
+			pause();
+            /*while (1)*/
+            /*{*/
+                /*get_message(sensors_queue, &sensors_command, &sensors_value);*/
+                /*message_handler(sensors_command, sensors_value);*/
+                /*// the sleeping makes little sense now as the get_integer function blocks until it has received something.*/
+                /*// This should probably be changed to nonblocking later though.*/
+                /*Sleep(10);*/
+            /*}*/
         }
     }
 }
