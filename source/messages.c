@@ -7,7 +7,6 @@
 #define MQ_SIZE 10
 #define PMODE 0666
 
-/* to open the message queue */
 mqd_t init_queue (char* mq_name, int open_flags) {
     struct mq_attr attr;
     // fill attributes of the mq
@@ -24,23 +23,23 @@ mqd_t init_queue (char* mq_name, int open_flags) {
     return mqfd;
 }
 
-/* to add an integer to the message queue */
 void send_message(mqd_t mq, uint16_t command, uint16_t value) {
-    uint32_t message = (command<<16) | value; //put the command and the value into the same int.
+    uint32_t message = (command<<16) | value; // put the command and the value into the same message.
 
     int status = mq_send (mq, (char *) &message, sizeof(uint32_t), 1); //sizeof for readability. 4 bytes
-    if (status == -1)
-      perror ("mq_send failure");
+    if (status == -1) {
+        perror ("mq_send failure");
+    }
 }
 
- /* to get an integer from message queue */
 void get_message (mqd_t mq, uint16_t *command, uint16_t *value) {
     ssize_t num_bytes_received = 0;
     uint32_t data=0;
 
     num_bytes_received = mq_receive(mq, (char *) &data, sizeof(uint32_t), NULL);
-    if (num_bytes_received == -1)
-      perror ("mq_receive failure");
+    if (num_bytes_received == -1) {
+         perror ("mq_receive failure");
+    }
     
     //decode the message
     *value = data & 0x0000ffff;

@@ -8,12 +8,13 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 
-void sensors_start(){
+void *sensors_start(){
     uint8_t sonar_sn;
     uint8_t compass_sn;
     float compass_value;
     float sonar_value;
 
+    ev3_init(); // We shouldtest without ev3_init(). Documentation is a little unclear, but it seems to be for remote control of the brick
     ev3_sensor_init();
     ev3_search_sensor( LEGO_EV3_US, &sonar_sn, 0 );
     ev3_search_sensor( HT_NXT_COMPASS, &compass_sn, 0 );
@@ -24,7 +25,7 @@ void sensors_start(){
         get_sensor_value0(compass_sn, &compass_value );
         get_sensor_value0(sonar_sn, &sonar_value );
         //send to main
-        send_message(sensors_queue, MESSAGE_SONAR, (uint16_t)sonar_value);
+        send_message(sensors_queue, MSG_SENS_SONAR, (uint16_t)sonar_value);
         Sleep(100);
     }
 }

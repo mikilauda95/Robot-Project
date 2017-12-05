@@ -16,6 +16,7 @@ uint8_t left_motor_sn;
 uint8_t right_motor_sn;
 
 int movement_init(){
+    ev3_init();
     ev3_tacho_init();
 
     ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &left_motor_sn, 0 );
@@ -41,24 +42,18 @@ void forward(){
     set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
 }
 
-void movement_start() {
+void *movement_start() {
+
     movement_init();
-
-    // Testing. Run forward for one second.
-    set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
-    set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
-    Sleep(1000);
-    stop();
-
     mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
 
     while(1) {
         uint16_t command, value;
         get_message(movement_queue, &command, &value);
-        if (command == MESSAGE_TURN) {
+        if (command == MSG_MOV_TURN) {
             stop();
             set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
-        } else if (command == MESSAGE_FORWARD) {
+        } else if (command == MSG_MOV_RUN_FORWARD) {
             forward();
         }
         
