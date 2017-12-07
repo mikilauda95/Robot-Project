@@ -5,6 +5,7 @@
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
+#include "bt_client.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 
@@ -32,6 +33,9 @@ void message_handler(uint16_t sensors_command, uint16_t sensors_value) {
 int main() {
     ev3_init();
 
+    int sock = bt_connect();
+    bt_wait_for_start(sock);
+    
     pid_t movement = fork();
     if (movement == 0)
     {
@@ -47,17 +51,26 @@ int main() {
         }
         else
         {
-            movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
-            sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
-
-            uint16_t sensors_command, sensors_value;
-            while (1)
+         
+            pid_t bluetooth = fork();
+            if (bluetooth == 0)
             {
-                get_message(sensors_queue, &sensors_command, &sensors_value);
-                message_handler(sensors_command, sensors_value);
-                // the sleeping makes little sense now as the get_integer function blocks until it has received something.
-                // This should probably be changed to nonblocking later though.
-                Sleep(10);
+                // TODO: call bt_client() here.
+            }
+            else
+            {
+                movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
+                sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
+
+                uint16_t sensors_command, sensors_value;
+                while (1)
+                {
+                    get_message(sensors_queue, &sensors_command, &sensors_value);
+                    message_handler(sensors_command, sensors_value);
+                    // the sleeping makes little sense now as the get_integer function blocks until it has received something.
+                    // This should probably be changed to nonblocking later though.
+                    Sleep(10);
+                }
             }
         }
     }
