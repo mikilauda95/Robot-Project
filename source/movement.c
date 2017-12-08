@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <math.h>
 #include <signal.h>
+#include "mapping.h"
 
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
@@ -22,13 +23,12 @@
 /*#define ANGULAR_SPEED 100*/
 #define ANGULAR_SPEED 150
 
-
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 enum name {L, R};
 uint8_t motor[2];
-uint8_t gyro_sn;
-float gyro_value, ang_off;
+uint8_t gyro_sn, sonar_sn;
+float gyro_value, ang_off, sonar_value;
 
 /*uint8_t motor[0];*/
 /*uint8_t motor[1];*/
@@ -45,6 +45,8 @@ struct coord {
 	float x;
 	float y;
 } coord;
+
+Matrix_double res_scanning;
 
 int movement_init(){
 	ev3_tacho_init();
@@ -64,10 +66,17 @@ int movement_init(){
 
 	int rets=ev3_search_sensor( LEGO_EV3_GYRO	, &gyro_sn, 0 );
 	if (rets) {
-		printf("FOUND IT\n");
+		printf("FOUND GYRO\n");
 	}
 	else {
-		printf("NOT FOUND\n");
+		printf("NOT FOUND GYRO\n");
+	}
+	rets=ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0 );
+	if (rets) {
+		printf("FOUND SONAR\n");
+	}
+	else {
+		printf("NOT FOUND SONAR\n");
 	}
 	Sleep(1000);
 	float a=0;
@@ -169,7 +178,23 @@ void TURN_DEGREES_GYRO(int ang_speed, int angle)
 	}
 }
 
-
+void SCAN(int num_scan, Matrix_double res_scanning)
+{
+	//implement the scanning function for the movement /*double curr_pos;*/ /*double curr_ang;*/
+	//
+	//implement two receives for getting the curr position and the current angle
+	res_scanning=createMatrix_double(num_scan,2);
+	int step_degrees=(int)( 360/num_scan);
+	for (int i = 0; i < num_scan; ++i) {
+		//need to set right values
+		TURN_DEGREES_GYRO(ANGULAR_SPEED/2, step_degrees); //or right
+		get_sensor_value0(sonar_sn, &sonar_value);
+		get_sensor_value0(gyro_sn, &gyro_value);
+		res_scanning.matrix[0][i]=(double)sonar_value;
+		res_scanning.matrix[1][i]=(double)gyro_value;
+		//will it wait till it has completed the movement? or should I sleep?
+	}
+}
 void* tracepos()
 {
 	int rdistance, ldistance, rspeed,lspeed;
