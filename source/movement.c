@@ -68,14 +68,17 @@ int movement_init(){
 
 void drop(){
     printf("DROP CALLED\n");
-    set_tacho_position_sp(arm_motor_sn, 150);
-    set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);
-    Sleep(2000);
+    /*set_tacho_position_sp(arm_motor_sn, 150);*/
+    /*set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);*/
+    /*Sleep(2000);*/
     printf("I am up now I will go down\n");
     set_tacho_position_sp(arm_motor_sn, -150);
     set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);
     Sleep(2000);
     printf("I am down so finished\n");
+    set_tacho_position_sp(arm_motor_sn, 150);
+    set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);
+    Sleep(2000);
 }
 
 void stop(){
@@ -95,15 +98,15 @@ void movement_start() {
     drop();
     //TESTING THE ARMS
     //from testing a good rel_pos value is between 120 and 150
-    int i;
-    for (i = 0; i < 1000; i+=10) {
-        printf("This is the rel value : %d\n",i);
-        set_tacho_speed_sp(arm_motor_sn, MAX_SPEED/5);
-        set_tacho_position_sp(arm_motor_sn, i );
-        set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);
-        Sleep(1000);
-        set_tacho_position_sp(arm_motor_sn, -i );
-        set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);
-        Sleep(1000);
-    }
+    /*int i;*/
+    /*for (i = 0; i < 1000; i+=10) {*/
+        /*printf("This is the rel value : %d\n",i);*/
+        /*set_tacho_speed_sp(arm_motor_sn, MAX_SPEED/5);*/
+        /*set_tacho_position_sp(arm_motor_sn, i );*/
+        /*set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);*/
+        /*Sleep(1000);*/
+        /*set_tacho_position_sp(arm_motor_sn, -i );*/
+        /*set_tacho_command_inx(arm_motor_sn, TACHO_RUN_TO_REL_POS);*/
+        /*Sleep(1000);*/
+    /*}*/
 }
