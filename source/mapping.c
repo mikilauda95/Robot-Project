@@ -106,8 +106,8 @@ void pol_to_cart(Matrix_double pol_coord, Matrix_double cart_coord){
         distance=pol_coord.matrix[0][i];
         angle=pol_coord.matrix[1][i]*(M_PI/180);
 
-        xc=distance*cos(angle);
-        yc=distance*sin(angle);
+        xc=distance*sin(angle);
+        yc=distance*cos(angle);
 
 
         cart_coord.matrix[0][i]=xc;

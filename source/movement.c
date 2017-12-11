@@ -119,7 +119,7 @@ void TURN_DEGREES_GYRO(int ang_speed, int angle)
 	float avg=0;
 	/*for (i = 0; i < 4; ++i) {*/
 	get_sensor_value0(gyro_sn,&gyro_value);
-	printf("gyro VALUE before TURN : %f\n", gyro_value);
+	/*printf("gyro VALUE before TURN : %f\n", gyro_value);*/
 	/*}*/
 	/*for (i = 0; i < 4; ++i) {*/
 	/*avg+=buffer[i];*/
@@ -149,28 +149,28 @@ void TURN_DEGREES_GYRO(int ang_speed, int angle)
 		/*}*/
 		/*avg=avg/4;*/
 		/*j++;*/
-		printf("gyro VALUE is %f\n", gyro_value);
+		/*printf("gyro VALUE is %f\n", gyro_value);*/
 		if (angle<=0) {
 			if (gyro_value<dest) {
-				printf("FINAL gyro VALUE is %f\n", gyro_value);
+				/*printf("FINAL gyro VALUE is %f\n", gyro_value);*/
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
 			}
 			else {
-				printf("We were so close %f\n",fabs(gyro_value-dest));
+				/*printf("We were so close %f\n",fabs(gyro_value-dest));*/
 
 			}
 		}
 		else {
 			if (gyro_value>=dest) {
-				printf("FINAL gyro VALUE is %f\n", gyro_value);
+				/*printf("FINAL gyro VALUE is %f\n", gyro_value);*/
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
 			}
 			else {
-				printf("We were so close %f\n",fabs(gyro_value-dest));
+				/*printf("We were so close %f\n",fabs(gyro_value-dest));*/
 
 			}
 
@@ -178,22 +178,28 @@ void TURN_DEGREES_GYRO(int ang_speed, int angle)
 	}
 }
 
-void SCAN(int num_scan, Matrix_double res_scanning)
+Matrix_double SCAN_MOVEMENT(int num_scan)
 {
 	//implement the scanning function for the movement /*double curr_pos;*/ /*double curr_ang;*/
 	//
 	//implement two receives for getting the curr position and the current angle
-	res_scanning=createMatrix_double(num_scan,2);
+	Matrix_double res_scanning=createMatrix_double(num_scan,2);
 	int step_degrees=(int)( 360/num_scan);
+	float offset;
+	get_sensor_value0(gyro_sn, &offset);
 	for (int i = 0; i < num_scan; ++i) {
 		//need to set right values
 		TURN_DEGREES_GYRO(ANGULAR_SPEED/2, step_degrees); //or right
+		/*printf("Now I should have done a step\n");*/
 		get_sensor_value0(sonar_sn, &sonar_value);
 		get_sensor_value0(gyro_sn, &gyro_value);
-		res_scanning.matrix[0][i]=(double)sonar_value;
-		res_scanning.matrix[1][i]=(double)gyro_value;
+		/*printf("This is the float value and this is the double one: %f and %f\n",sonar_value, (double)sonar_value);*/
+		res_scanning.matrix[0][i]=(double)( sonar_value );
+		res_scanning.matrix[1][i]=(double)( gyro_value-offset );
+		/*printf("THESE ARE THE TWO VALUES READ %f %f\n",res_scanning.matrix[0][i],res_scanning.matrix[1][i]);*/
 		//will it wait till it has completed the movement? or should I sleep?
 	}
+		return res_scanning;
 }
 void* tracepos()
 {
@@ -287,40 +293,58 @@ void movement_start() {
 	/*Sleep(1000);*/
 
 
-	mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
-	for (int i = 0; i < 2; ++i) {
+	/*mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);*/
+	/*for (int i = 0; i < 2; ++i) {*/
 
-		forward();
-		if(pthread_create(&movid,NULL, &tracepos, NULL)!=0){
-			printf("Failed the creation of the thread\n");
-		}
-		Sleep(2500);
-		stop();
-		Sleep(2000);
-		pos_flag=0;
-		pthread_join(movid, NULL);
-		/*printf("THESE ARE THE COORDINATES BEFORE TURNING %f %f\n",coord.x,coord.y);*/
-		/*Sleep(5000);*/
-		TURN_DEGREES_GYRO(ANGULAR_SPEED/2, 90);
-		/*Sleep(5000);*/
-		/*printf("THESE ARE THE COORDINATES AFTER TURNING %f %f\n",coord.x,coord.y);*/
-		pos_flag=1;
-		Sleep(2000);
-		forward();
-		if(pthread_create(&movid,NULL, &tracepos, NULL)!=0){
-			printf("Failed the creation of the thread\n");
-		}
-		Sleep(1500);
-		stop();
-		Sleep(2000);
-		pos_flag=0;
-		pthread_join(movid, NULL);
-		/*printf("THESE ARE THE COORDINATES BEFORE TURNING %f %f\n",coord.x,coord.y);*/
-		/*Sleep(5000);*/
-		TURN_DEGREES_GYRO(ANGULAR_SPEED/2, 90);
-		/*Sleep(5000);*/
-		/*printf("THESE ARE THE COORDINATES AFTER TURNING %f %f\n",coord.x,coord.y);*/
-		pos_flag=1;
-		Sleep(2000);
+	int i,j;
+	int num_scan=180;
+	res_scanning=SCAN_MOVEMENT(num_scan);
+	/*printf("HERE ARE THE RESULT OF THE SCANNING\n");*/
+	/*for (i = 0; i < 2; ++i) {*/
+		/*for (j = 0; j < num_scan; ++j) {*/
+			/*printf("%f ",res_scanning.matrix[i][j]);*/
+		/*}*/
+		/*printf("\n");*/
+	/*}*/
+	Matrix_double cart_coord=createMatrix_double(num_scan, 2);
+	pol_to_cart(res_scanning, cart_coord);
+	for (i = 0; i < num_scan; ++i) {
+		printf("%f %f\n",cart_coord.matrix[0][i], cart_coord.matrix[1][i]);
 	}
+
+
+
+		/*forward();*/
+		/*if(pthread_create(&movid,NULL, &tracepos, NULL)!=0){*/
+			/*printf("Failed the creation of the thread\n");*/
+		/*}*/
+		/*Sleep(2500);*/
+		/*stop();*/
+		/*Sleep(2000);*/
+		/*pos_flag=0;*/
+		/*pthread_join(movid, NULL);*/
+		/*[>printf("THESE ARE THE COORDINATES BEFORE TURNING %f %f\n",coord.x,coord.y);<]*/
+		/*[>Sleep(5000);<]*/
+		/*TURN_DEGREES_GYRO(ANGULAR_SPEED/2, 90);*/
+		/*[>Sleep(5000);<]*/
+		/*[>printf("THESE ARE THE COORDINATES AFTER TURNING %f %f\n",coord.x,coord.y);<]*/
+		/*pos_flag=1;*/
+		/*Sleep(2000);*/
+		/*forward();*/
+		/*if(pthread_create(&movid,NULL, &tracepos, NULL)!=0){*/
+			/*printf("Failed the creation of the thread\n");*/
+		/*}*/
+		/*Sleep(1500);*/
+		/*stop();*/
+		/*Sleep(2000);*/
+		/*pos_flag=0;*/
+		/*pthread_join(movid, NULL);*/
+		/*[>printf("THESE ARE THE COORDINATES BEFORE TURNING %f %f\n",coord.x,coord.y);<]*/
+		/*[>Sleep(5000);<]*/
+		/*TURN_DEGREES_GYRO(ANGULAR_SPEED/2, 90);*/
+		/*[>Sleep(5000);<]*/
+		/*[>printf("THESE ARE THE COORDINATES AFTER TURNING %f %f\n",coord.x,coord.y);<]*/
+		/*pos_flag=1;*/
+		/*Sleep(2000);*/
+	/*}*/
 }
