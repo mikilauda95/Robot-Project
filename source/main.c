@@ -1,64 +1,95 @@
 #include <stdio.h>
-#include <pthread.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include "ev3.h"
-#include "movement.h"
-#include "messages.h"
-#include "sensors.h"
+#include "ev3_port.h"
+#include "ev3_tacho.h"
+#include "ev3_sensor.h"
+// WIN32 /////////////////////////////////////////
+#ifdef __WIN32__
 
-#define Sleep(msec) usleep((msec)*1000)
+#include <windows.h>
 
- mqd_t movement_queue, sensors_queue;
+// UNIX //////////////////////////////////////////
+#else
 
-void message_handler(uint16_t sensors_command, uint16_t sensors_value) {
-    switch (sensors_command)
-    {
-    case MESSAGE_SONAR:
-        // if the robot is close to an object, make it turn
-        if (sensors_value < 500)
-        {
-            send_message(movement_queue, MESSAGE_TURN, 0);
-            printf("Sending message TURN \n");
-        }
-        else
-        {
-            send_message(movement_queue, MESSAGE_FORWARD, 0);
-            printf("Sending message FORWARD \n");
-        }
-        break;
-    }
+#include <unistd.h>
+#define Sleep( msec ) usleep(( msec ) * 1000 )
+
+//////////////////////////////////////////////////
+#endif
+const char const *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
+#define COLOR_COUNT  (( int )( sizeof( color ) / sizeof( color[ 0 ])))
+
+static bool _check_pressed( uint8_t sn )
+{
+	int val;
+
+	if ( sn == SENSOR__NONE_ ) {
+		return ( ev3_read_keys(( uint8_t *) &val ) && ( val & EV3_KEY_UP ));
+	}
+	return ( get_sensor_value( 0, sn, &val ) && ( val != 0 ));
 }
+int get_color(uint8_t sn_color);
+void RECOGNIZE_OBST(void);
 
-int main() {
-    ev3_init();
 
-    pid_t movement = fork();
-    if (movement == 0)
-    {
-        movement_start();
-    }
-    else
-    {
+int main( void )
+{
 
-        pid_t sensors = fork();
-        if (sensors == 0)
-        {
-            sensors_start();
-        }
-        else
-        {
-            movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
-            sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
+	int i;
+	uint8_t sn;
+	FLAGS_T state;
+	uint8_t sn_touch;
+	uint8_t sn_color;
+	uint8_t sn_compass;
+	uint8_t sn_sonar;
+	uint8_t sn_mag;
+	char s[ 256 ];
+	int val;
+	float value;
+	uint32_t n, ii;
+#ifndef __ARM_ARCH_4T__
+	/* Disable auto-detection of the brick (you have to set the correct address below) */
+	ev3_brick_addr = "192.168.0.204";
 
-            uint16_t sensors_command, sensors_value;
-            while (1)
-            {
-                get_message(sensors_queue, &sensors_command, &sensors_value);
-                message_handler(sensors_command, sensors_value);
-                // the sleeping makes little sense now as the get_integer function blocks until it has received something.
-                // This should probably be changed to nonblocking later though.
-                Sleep(10);
-            }
-        }
-    }
+#endif
+	if ( ev3_init() == -1 ) return ( 1 );
+
+#ifndef __ARM_ARCH_4T__
+	printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
+
+
+#endif
+
+	ev3_sensor_init();
+	if ( ev3_search_sensor( LEGO_EV3_COLOR, &sn_color, 0 )) {
+		printf( "COLOR sensor is found, reading COLOR...\n" );
+	}
+	while (1) {
+		val=get_color(sn_color);
+	}
 }
+		//Run all sensors
+		//	to be seen
+		/*set_sensor_mode(sn_color,"RGB_RAW");*/
+		/*set_sensor_mode(sn_color,"COL_COLOR");*/
+
+		void RECOGNIZE_OBST(void) {
+			
+
+		}
+
+		int get_color(uint8_t sn_color){
+
+			int val;
+			if ( !get_sensor_value( 0, sn_color, &val ) || ( val < 0 ) || ( val >= COLOR_COUNT )) {
+				val = 0;
+			}
+			printf("val is %d\n",val);
+			printf( "\r(%s) \n", color[ val ]);
+			fflush( stdout );
+			return val;
+		}
+
+
+
