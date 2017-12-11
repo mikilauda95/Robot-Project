@@ -9,7 +9,7 @@
 
 #define Sleep(msec) usleep((msec)*1000)
 
- mqd_t movement_queue, sensors_queue;
+ mqd_t movement_queue, sensors_queue, bluetooth_queue;
 
 void message_handler(uint16_t sensors_command, uint16_t sensors_value) {
     switch (sensors_command)
@@ -33,9 +33,6 @@ void message_handler(uint16_t sensors_command, uint16_t sensors_value) {
 int main() {
     ev3_init();
 
-    int sock = bt_connect();
-    bt_wait_for_start(sock);
-    
     pid_t movement = fork();
     if (movement == 0)
     {
@@ -51,11 +48,20 @@ int main() {
         }
         else
         {
-         
             pid_t bluetooth = fork();
             if (bluetooth == 0)
             {
-                // TODO: call bt_client() here.
+                bluetooth_queue = init_queue("/bluetooth", O_CREAT | O_RDWR);
+                printf("Trying to connect...\r\n");
+
+                int sock = bt_connect();
+                if (bt_wait_for_start(sock)){
+                    printf("Did not receive start\r\n");
+                }else{
+                    printf("Did receive start\r\n");
+                }
+
+                bt_send_position(sock);
             }
             else
             {

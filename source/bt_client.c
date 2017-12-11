@@ -19,35 +19,32 @@
 static int bt_send_to_server(int type, char* data, int sock);
 static int bt_read_from_server (int sock, char *buffer, size_t maxSize);
 
-static int bt_send_to_server(int type, char* data, int sock) {
-	static uint16_t msg_ID = 0;
-	int msg_len = 0;
-	char msg[BT_MSG_LEN_MAX];
-	int status;
+// dummy positions
+uint16_t pos_x = 100;
+uint16_t pos_y = 140;
 
-	if (type == BT_MSG_POSITION){
-		msg[msg_len++] = (msg_ID >> 8) & 0xFF;
-		msg[msg_len++] = msg_ID & 0xFF;
-		msg[msg_len++] = BT_TEAM_ID;
-		msg[msg_len++] = 0xFF;
-		msg[msg_len++] = BT_MSG_POSITION;
-		msg[msg_len++] = data[0];
-		msg[msg_len++] = data[1];
-		msg[msg_len++] = data[2];
-		msg[msg_len++] = data[3];
-		++msg_ID;
-	} else {
-		fprintf(stderr, "bt_send_message: unkown message type: %d\n", type);
-		return -1;
+void bt_send_position(int sock) {
+	
+	static uint16_t msgId = 0;
+	
+	for(;;){
+		char string[58];
+		*((uint16_t *) string) = msgId++;
+		string[2] = BT_TEAM_ID;
+		string[3] = 0xFF;
+		string[4] = BT_MSG_POSITION;
+		string[5] = pos_x;
+		string[6] = 0x00;
+		string[7] = pos_y;
+		string[8]= 0x00;
+		int ret = write(sock, string, 9);
+		if (ret < 0){
+			fprintf(stderr, "BT: Failed to write to server!\r\n");
+			return;
+		}
+		printf("BT: sending position (%d, %d)\r\n", pos_x, pos_y);
+		Sleep(2000);
 	}
-
-	status = write(sock, msg, msg_len);
-	if (status != 0) {
-		fprintf(stderr, "bt_send_message: failed to write to socket\n");
-		return -1;
-	}
-
-	return 0;
 }
 
 int bt_wait_for_start(int sock) {
@@ -71,10 +68,9 @@ static int bt_read_from_server(int sock, char *buffer, size_t maxSize) {
 		exit(EXIT_FAILURE);
 	}
 
-	printf ("[DEBUG] received %d bytes\n", bytes_read);
-
 	return bytes_read;
 }
+
 
 int bt_connect(void){
 	struct sockaddr_rc addr = { 0 };
@@ -92,33 +88,113 @@ int bt_connect(void){
 	status = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 
 	// if connection failed
-	if (status != 0) {
+	if (status == 0) {
+		printf("bt_client: conected to server %s with sock id %d \r\n", BT_SERV_ADDR, sock);
+	}else{
 		fprintf(stderr, "bt_client: Failed to connect to server...\n");
 	}
-	printf("bt_client: conected to server %s\r\n", BT_SERV_ADDR);
 
 	return sock;
 }
 
-void bt_client(int sock, mqd_t bt_mq) {
 
-	/*
-	 * This is where we would read from the message queue and call 
-	 * bt_send_to_server. Due to the current limitations in the message
-	 * queue, I will wait until we have implemented a more dynamic message
-	 * queue that supports multi-chararcter messages. The below loop is 
-	 * just there to keep the compiler happy.
-	 * 														-Fredrk
-	*/
 
-	for(;;){
-		uint16_t tmp[4];
-		char tmp2[4];
-		get_message(bt_mq, tmp, tmp);
-		bt_send_to_server(BT_MSG_POSITION, tmp2, sock);
-		Sleep(1);
-	}
 
-	printf("bt_client: worker exiting\n");
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// void bt_client(int sock, mqd_t bt_mq) {
+
+// 	/*
+// 	 * This is where we would read from the message queue and call 
+// 	 * bt_send_to_server. Due to the current limitations in the message
+// 	 * queue, I will wait until we have implemented a more dynamic message
+// 	 * queue that supports multi-chararcter messages. The below loop is 
+// 	 * just there to keep the compiler happy.
+// 	 * 														-Fredrk
+// 	*/
+
+// 	for(;;){
+// 		uint16_t x = 100;
+// 		uint16_t y = 120;
+// 		bt_send_position(sock, x, y);
+// 		Sleep(2000);
+// 	}
+
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// uint16_t msgId = 0;
+// static int bt_send_to_server(int type, char* data, int sock) {
+// 	char string[58];
+// 	printf ("I'm navigating...\n");
+
+// 	if(type == BT_MSG_POSITION){
+// 		*((uint16_t *) string) = msgId++;
+// 		string[2] = BT_TEAM_ID;
+// 		string[3] = 0xFF;
+// 		string[4] = BT_MSG_POSITION;
+// 		string[5] = 20;          /* x */
+// 		string[6] = 0x00;
+// 		string[7] = 50;              /* y */
+// 		string[8]= 0x00;
+// 		write(sock, string, 9);
+// 	}
+// }
+// static int bt_send_to_server(int type, char* data, int sock) {
+// 	static uint16_t msg_ID = 0;
+// 	int msg_len = 0;
+// 	char msg[BT_MSG_LEN_MAX];
+// 	int status;
+
+// 	if (type == BT_MSG_POSITION){
+//     	*((uint16_t *) msg) = msg_ID++;
+// 		msg[msg_len++] = BT_TEAM_ID;
+// 		msg[msg_len++] = 0xFF;
+// 		msg[msg_len++] = BT_MSG_POSITION;
+// 		msg[msg_len++] = 0;
+// 		msg[msg_len++] = 10;
+// 		msg[msg_len++] = 0;
+// 		msg[msg_len++] = 20;
+// 		++msg_ID;
+// 	} else {
+// 		fprintf(stderr, "bt_send_message: unkown message type: %d\n", type);
+// 		return -1;
+// 	}
+
+// 	printf("Sending data, %d bytes long\r\n", msg_len);
+// 	status = write(sock, msg, 9);
+// 	if (status != 0) {
+// 		printf("write with status %d\r\n", status);
+// 		fprintf(stderr, "bt_send_message: failed to write to socket: %d\n", sock);
+// 		return -1;
+// 	}
+
+// 	return 0;
+// }
