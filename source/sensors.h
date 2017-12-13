@@ -1,1 +1,1 @@
-void sensors_start();
+void *sensors_start();

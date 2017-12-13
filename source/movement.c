@@ -41,14 +41,8 @@ void forward(){
     set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
 }
 
-void movement_start() {
+void *movement_start() {
     movement_init();
-
-    // Testing. Run forward for one second.
-    set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
-    set_tacho_command_inx(right_motor_sn, TACHO_RUN_FOREVER);
-    Sleep(1000);
-    stop();
 
     mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
 
@@ -58,6 +52,8 @@ void movement_start() {
         if (command == MESSAGE_TURN) {
             stop();
             set_tacho_command_inx(left_motor_sn, TACHO_RUN_FOREVER);
+            Sleep(100);
+            stop();
         } else if (command == MESSAGE_FORWARD) {
             forward();
         }

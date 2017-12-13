@@ -8,7 +8,7 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 
-void sensors_start(){
+void *sensors_start(){
     uint8_t sonar_sn;
     uint8_t compass_sn;
     float compass_value;
