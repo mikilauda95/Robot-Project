@@ -4,16 +4,23 @@
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
+#include "bt_client.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 #define STATE_TURNING 1
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 
-mqd_t movement_queue, sensors_queue;
+ mqd_t movement_queue, sensors_queue, bluetooth_queue;
 
 
 int main() {
+
+    movement_init();
+
+    int sock = bt_connect();
+    bt_wait_for_start(sock);
+
     int state = STATE_TURNING;
     pthread_t movement_thread, sensors_thread;
 

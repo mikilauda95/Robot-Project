@@ -42,7 +42,6 @@ void forward(){
 }
 
 void *movement_start() {
-    movement_init();
 
     mqd_t movement_queue = init_queue("/movement", O_CREAT | O_RDONLY);
 
