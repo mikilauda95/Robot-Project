@@ -54,8 +54,6 @@ void *position_tracker(void* param) {
 			rpos = 0;
 		}
 
-		printf("%f, %f\n", coord.x, coord.y);
-
 		Sleep(POS_CALC_PERIOD_MS);
 	}
 }
