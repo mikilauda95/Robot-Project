@@ -16,49 +16,9 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define BT_MSG_LEN_MAX 64
 
-static int bt_read_from_server (int sock, char *buffer, size_t maxSize);
+static int sock = -1;
 
-// dummy positions
-uint16_t pos_x = 100;
-uint16_t pos_y = 140;
-
-void bt_send_position(int sock) {
-	
-	static uint16_t msgId = 0;
-	
-	for(;;){
-		char string[58];
-		*((uint16_t *) string) = msgId++;
-		string[2] = BT_TEAM_ID;
-		string[3] = 0xFF;
-		string[4] = BT_MSG_POSITION;
-		string[5] = pos_x;
-		string[6] = 0x00;
-		string[7] = pos_y;
-		string[8]= 0x00;
-		int ret = write(sock, string, 9);
-		if (ret < 0){
-			fprintf(stderr, "BT: Failed to write to server!\r\n");
-			return;
-		}
-		printf("BT: sending position (%d, %d)\r\n", pos_x, pos_y);
-		Sleep(2000);
-	}
-}
-
-int bt_wait_for_start(int sock) {
-	char string[BT_MSG_LEN_MAX];
-	bt_read_from_server(sock, string, 9);
-
-	if (string[4] == BT_MSG_START) {
-		return 0;
-	} else {
-		return -1;
-	}
-
-}
-
-static int bt_read_from_server(int sock, char *buffer, size_t maxSize) {
+static int _read_from_server(char *buffer, size_t maxSize) {
 	int bytes_read = read(sock, buffer, maxSize);
 
 	if (bytes_read <= 0) {
@@ -70,10 +30,44 @@ static int bt_read_from_server(int sock, char *buffer, size_t maxSize) {
 	return bytes_read;
 }
 
+static void _send_position(uint16_t x, uint16_t y) {
+	
+	static uint16_t msgId = 0;
+	char string[58];
 
-int bt_connect(void) {
+	*((uint16_t *) string) = msgId++;
+	string[2] = BT_TEAM_ID;
+	string[3] = 0xFF;
+	string[4] = BT_MSG_POSITION;
+	string[5] = x;
+	string[6] = 0x00;
+	string[7] = y;
+	string[8] = 0x00;
+	int ret = write(sock, string, 9);
+	if (ret < 0) {
+		fprintf(stderr, "BT: Failed to write to server!\r\n");
+		return;
+	}
+	printf("BT: sending position (%d, %d)\r\n", x, y);
+
+}
+
+
+int bt_wait_for_start() {
+	char string[BT_MSG_LEN_MAX];
+	_read_from_server(string, 9);
+
+	if (string[4] == BT_MSG_START) {
+		return 0;
+	} else {
+		return -1;
+	}
+
+}
+
+bool bt_connect(void) {
 	struct sockaddr_rc addr = { 0 };
-	int status, sock;
+	int status;
 
 	// allocate a socket
 	sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
@@ -83,17 +77,51 @@ int bt_connect(void) {
 	addr.rc_channel = (uint8_t) 1;
 	str2ba(BT_SERV_ADDR, &addr.rc_bdaddr);
 
-	// connect to server
+	printf("bt_connect: Attempting to connect...\r\n");
 	status = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 
-	// if connection failed
 	if (status == 0) {
 		printf("bt_client: conected to server %s with sock id %d \r\n", BT_SERV_ADDR, sock);
+		return true;
 	}else{
 		fprintf(stderr, "bt_client: Failed to connect to server...\n");
+		return false;
 	}
 
-	return sock;
+}
+
+void* bt_client(void *queues){
+
+	mqd_t* tmp = (mqd_t*)queues;
+
+	mqd_t bt_from_main_queue = tmp[0];
+
+	uint16_t command, value;
+	uint16_t pos_x, pos_y;
+	bool should_send = false;
+
+	for(;;){
+		
+		get_message(bt_from_main_queue, &command, &value);
+
+		switch(command) {
+			case MESSAGE_POS_X:
+				pos_x = value;
+			break;
+			case MESSAGE_POS_Y:
+				pos_y = value;
+				should_send = true;
+			break;
+		}
+
+		if(should_send) {
+			_send_position(pos_x, pos_y);
+			should_send = false;
+		}
+
+	}
+
+	return NULL;
 }
 
 
