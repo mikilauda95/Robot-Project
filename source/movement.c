@@ -54,8 +54,6 @@ void *position_tracker(void* param) {
 			rpos = 0;
 		}
 
-		printf("%f, %f\n", coord.x, coord.y);
-
 		Sleep(POS_CALC_PERIOD_MS);
 	}
 }
@@ -129,13 +127,6 @@ void *movement_start(void* queues) {
 	pthread_t position_tracker_thread, position_sender_thread;
 	pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
-
-	for(;;) {
-		forward();
-		Sleep(1000);
-		stop();
-        return 0;
-	}
 
 	while(1) {
 	   
