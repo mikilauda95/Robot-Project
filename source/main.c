@@ -16,7 +16,7 @@ mqd_t movement_queue_from_main, movement_queue_to_main, sensors_queue,  bt_from_
 
 int main() {
 
-    
+    movement_init();
     /*
     if (!bt_connect()) {
 		exit(1);

@@ -58,7 +58,6 @@ void turn_degrees(int ang_speed, double angle) {
 }
 
 void *movement_start() {
-    movement_init();
     mqd_t movement_queue_to_main = init_queue("/movement_to_main", O_CREAT | O_WRONLY);
     mqd_t movement_queue_from_main = init_queue("/movement_from_main", O_CREAT | O_RDONLY);
     printf("Movement Started\n");
@@ -69,12 +68,7 @@ void *movement_start() {
        
         uint16_t command, value;
         int bytes = get_message(movement_queue_from_main, &command, &value);
-        // Message queue is non blocking. Read until we get a value
-        while(bytes == -1) {
-            bytes = get_message(movement_queue_from_main, &command, &value);
-
-            Sleep(1);
-        }
+  
         printf("Got message %d with value %d \n", command, value);
         
         if (command == MESSAGE_TURN) {
