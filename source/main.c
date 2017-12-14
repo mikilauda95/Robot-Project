@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
@@ -11,28 +12,35 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 
- mqd_t movement_queue_from_main, movement_queue_to_main, sensors_queue, bluetooth_queue;
-
+mqd_t movement_queue_from_main, movement_queue_to_main, sensors_queue,  bt_from_main_queue, bt_to_main_queue;
 
 int main() {
 
-    movement_init();
+    
     /*
-    int sock = bt_connect();
-    bt_wait_for_start(sock);
+    if (!bt_connect()) {
+		exit(1);
+	}
+	bt_wait_for_start();
     */
     int state = STATE_TURNING;
-    pthread_t movement_thread, sensors_thread;
-
-    pthread_create(&movement_thread, NULL, movement_start, NULL);
-    pthread_create(&sensors_thread, NULL, sensors_start, NULL);
+    pthread_t movement_thread, sensors_thread, bluetooth_thread;
 
     // To make communication bi-directional we should use two queues.
     movement_queue_to_main = init_queue("/movement_to_main", O_CREAT | O_RDONLY | O_NONBLOCK);
     movement_queue_from_main = init_queue("/movement_from_main", O_CREAT | O_WRONLY);
     sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
+    bt_from_main_queue = init_queue("/bt_from_main", O_CREAT | O_RDWR);
+	bt_to_main_queue = init_queue("/bt_to_main", O_CREAT | O_RDWR);
+
+    mqd_t bt_queues[] = {bt_from_main_queue, bt_to_main_queue};
+
+    pthread_create(&movement_thread, NULL, movement_start, NULL);
+    pthread_create(&sensors_thread, NULL, sensors_start, NULL);
+    pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
     uint16_t sensors_command, sensors_value;
+
     while (1) {
         get_message(sensors_queue, &sensors_command, &sensors_value);
         switch (state) {

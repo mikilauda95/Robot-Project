@@ -12,6 +12,9 @@
 #define MESSAGE_COMPASS 10
 #define MESSAGE_SONAR 11
 
+#define MESSAGE_POS_X 20
+#define MESSAGE_POS_Y 21
+
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, uint16_t value);
 int get_message(mqd_t mq, uint16_t *command, uint16_t *value);
