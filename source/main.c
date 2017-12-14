@@ -23,7 +23,7 @@ int main() {
 	}
 	bt_wait_for_start();
     */
-    int state = STATE_TURNING;
+    int state;
     pthread_t movement_thread, sensors_thread, bluetooth_thread;
 
     // To make communication bi-directional we should use two queues.
@@ -40,19 +40,31 @@ int main() {
     pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
     uint16_t sensors_command, sensors_value;
+    uint16_t movement_command, movement_value;
+
+    bool got_mov_msg = false;
+
+    // start robot in forward state. In the real program it should start with scanning. 
+    send_message(movement_queue_from_main, MESSAGE_FORWARD, 0); 
+    state = STATE_RUNNING;
 
     while (1) {
         get_message(sensors_queue, &sensors_command, &sensors_value);
+        if (get_message(movement_queue_to_main, &movement_command, &movement_value) != -1) {
+            got_mov_msg = true;
+        }
         switch (state) {
             case STATE_TURNING:
-                Sleep(500);
-                send_message(movement_queue_from_main, MESSAGE_FORWARD, 0);
-                state = STATE_RUNNING;
+                if (got_mov_msg == true && movement_command == MESSAGE_TURN_COMPLETE) {
+                    send_message(movement_queue_from_main, MESSAGE_FORWARD, 0);
+                    state = STATE_RUNNING;
+                }
+                
             break;
             
             case STATE_RUNNING:
                 if (sensors_command == MESSAGE_SONAR && sensors_value < 500) {
-                    send_message(movement_queue_from_main, MESSAGE_TURN, 10);
+                    send_message(movement_queue_from_main, MESSAGE_TURN, 90);
                     state = STATE_TURNING;
                 } 
             break;
@@ -60,9 +72,9 @@ int main() {
             case STATE_SCANNING:
             break;
         }
+        got_mov_msg = false;
         // the sleeping makes little sense now as the get_integer function blocks until it has received something.
         // This should probably be changed to nonblocking later though.
         Sleep(10);
     }
-
 }
