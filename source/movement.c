@@ -10,8 +10,8 @@
 
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
-#define MAX_SPEED 500//1050
-#define DEGREE_TO_LIN 2.10
+#define RUN_SPEED 500 // Max is 1050
+#define DEGREE_TO_LIN 2.05
 
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
@@ -84,8 +84,8 @@ int movement_init(){
 	set_tacho_stop_action_inx( motor[L], TACHO_BRAKE );
 	set_tacho_stop_action_inx( motor[R], TACHO_BRAKE );
 
-	set_tacho_speed_sp(motor[L], MAX_SPEED * 2 / 3 );
-	set_tacho_speed_sp(motor[R], MAX_SPEED * 2 / 3 );
+	set_tacho_speed_sp(motor[L], RUN_SPEED );
+	set_tacho_speed_sp(motor[R], RUN_SPEED );
 
 	return 0;
 }
@@ -98,8 +98,8 @@ void stop(){
 
 void forward(){
 	do_track_position = true;
-    set_tacho_speed_sp(motor[L], MAX_SPEED * 2 / 3 );
-    set_tacho_speed_sp(motor[R], MAX_SPEED * 2 / 3 );
+    set_tacho_speed_sp(motor[L], RUN_SPEED );
+    set_tacho_speed_sp(motor[R], RUN_SPEED );
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
@@ -131,10 +131,10 @@ void *movement_start(void* queues) {
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
 	for(;;) {
-		forward();
-		Sleep(1000);
-		stop();
-        return 0;
+		turn_degrees(100, 90);
+		Sleep(2000);
+		turn_degrees(100, -90);
+        Sleep(2000);
 	}
 
 	while(1) {

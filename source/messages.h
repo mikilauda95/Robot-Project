@@ -12,6 +12,7 @@
 
 #define MESSAGE_COMPASS 10
 #define MESSAGE_SONAR 11
+#define MESSAGE_GYRO 12
 
 #define MESSAGE_POS_X 20
 #define MESSAGE_POS_Y 21
