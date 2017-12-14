@@ -11,8 +11,8 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
+#define ANG_SPEED 75 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.05
-
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -102,19 +102,63 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 
-void turn_degrees(int ang_speed, double angle) {
-	set_tacho_speed_sp( motor[L], ang_speed );
-	set_tacho_speed_sp( motor[R], ang_speed );
-	set_tacho_position_sp( motor[L], angle * DEGREE_TO_LIN );
-	set_tacho_position_sp( motor[R], -(angle * DEGREE_TO_LIN) );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	int spd;
-	get_tacho_speed(motor[L], &spd);
-	while ( spd != 0 ) { // Block until done turning
-		get_tacho_speed(motor[L], &spd);
-		Sleep(1);
+void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
+
+	delta -= 5;
+
+	uint16_t command, current_angle;
+	get_message(sensor_queue, &command, &current_angle);
+
+	float target = current_angle + delta;
+	printf("turn_degrees_gyro: destination angle is %f, current is %d\n", target, current_angle);
+
+	if (delta > 0) {
+		set_tacho_speed_sp( motor[L], angle_speed );
+		set_tacho_speed_sp( motor[R], -angle_speed );
+		multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
 	}
+	else {
+		set_tacho_speed_sp( motor[L], -angle_speed );
+		set_tacho_speed_sp( motor[R], angle_speed );
+		multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
+	}
+
+	for (;;) {
+		get_message(sensor_queue, &command, &current_angle);
+		
+		if (delta < 0) {
+			if (current_angle < target){
+				set_tacho_command_inx(motor[L], TACHO_STOP);
+				set_tacho_command_inx(motor[R], TACHO_STOP);
+				break;
+			}
+		}else {
+			if (current_angle > target){
+				set_tacho_command_inx(motor[L], TACHO_STOP);
+				set_tacho_command_inx(motor[R], TACHO_STOP);
+				break;
+			}
+		}
+
+		// float remaining = target - current_angle;
+		// printf("Remaining = %f\n", remaining);
+
+		if ( abs(remaining) < 15 ) {
+			if (delta > 0) {
+				set_tacho_speed_sp( motor[L], angle_speed / 6 );
+				set_tacho_speed_sp( motor[R], -angle_speed / 6 );
+				multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
+			}
+			else {
+				set_tacho_speed_sp( motor[L], -angle_speed / 6 );
+				set_tacho_speed_sp( motor[R], angle_speed / 6 );
+				multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
+			}
+		}
+	}
+
 }
+
 
 void *movement_start(void* queues) {
 
@@ -128,26 +172,21 @@ void *movement_start(void* queues) {
 	pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
-	for(;;) {
-		turn_degrees(100, 90);
-		Sleep(2000);
-		turn_degrees(100, -90);
-        Sleep(2000);
-	}
-
 	while(1) {
 	   
 		uint16_t command, value;
+
 		get_message(movement_queue_from_main, &command, &value);
 		
-		if (command == MESSAGE_TURN) {
+		if (command == MESSAGE_TURN_DEGREES) {
 			stop();
-			set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
-			Sleep(100);
-			stop();
+			Sleep(500);
+			turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
+			heading += value;
+			send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 		} else if (command == MESSAGE_FORWARD) {
 			forward();
 		}
-		Sleep(10);
+
 	}
 }

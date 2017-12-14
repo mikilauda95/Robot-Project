@@ -4,7 +4,7 @@
 // My idea here is something like send((MESSAGE_TURN << 11)  | deg))  and decode at the other end. 
 // This will help us send command and value in the same int
 #define MESSAGE_STOP 0
-#define MESSAGE_TURN 1
+#define MESSAGE_TURN_DEGREES 1
 #define MESSAGE_SET_SPEED 2
 #define MESSAGE_PIROUETTE 3
 #define MESSAGE_FORWARD 4

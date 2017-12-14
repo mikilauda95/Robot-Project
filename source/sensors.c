@@ -20,7 +20,7 @@ void *sensors_start(){
     ev3_sensor_init();
     ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
     ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
-     ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
+    ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
 
     mqd_t sensors_queue = init_queue("/sensors", O_CREAT | O_WRONLY);
 
@@ -30,7 +30,7 @@ void *sensors_start(){
         get_sensor_value0(gyro_sn, &gyro_value );
         //send to main
         send_message(sensors_queue, MESSAGE_SONAR, (uint16_t)sonar_value);
-        send_message(sensors_queue, MESSAGE_GYRO, (uint16_t)gyro_value);
+        send_message(sensors_queue, MESSAGE_GYRO, (uint16_t)(gyro_value + 0.5));
         Sleep(100);
     }
 }
