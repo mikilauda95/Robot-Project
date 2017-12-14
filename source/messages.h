@@ -14,4 +14,4 @@
 
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, uint16_t value);
-void get_message(mqd_t mq, uint16_t *command, uint16_t *value);
+int get_message(mqd_t mq, uint16_t *command, uint16_t *value);

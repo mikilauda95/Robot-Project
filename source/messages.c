@@ -34,15 +34,13 @@ void send_message(mqd_t mq, uint16_t command, uint16_t value) {
 }
 
  /* to get an integer from message queue */
-void get_message (mqd_t mq, uint16_t *command, uint16_t *value) {
+int get_message (mqd_t mq, uint16_t *command, uint16_t *value) {
     ssize_t num_bytes_received = 0;
     uint32_t data=0;
 
     num_bytes_received = mq_receive(mq, (char *) &data, sizeof(uint32_t), NULL);
-    if (num_bytes_received == -1)
-      perror ("mq_receive failure");
-    
     //decode the message
     *value = data & 0x0000ffff;
     *command = data >> 16;
+    return num_bytes_received;
 }

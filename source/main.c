@@ -11,16 +11,16 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 
- mqd_t movement_queue, sensors_queue, bluetooth_queue;
+ mqd_t movement_queue_from_main, movement_queue_to_main, sensors_queue, bluetooth_queue;
 
 
 int main() {
 
     movement_init();
-
+    /*
     int sock = bt_connect();
     bt_wait_for_start(sock);
-
+    */
     int state = STATE_TURNING;
     pthread_t movement_thread, sensors_thread;
 
@@ -28,7 +28,8 @@ int main() {
     pthread_create(&sensors_thread, NULL, sensors_start, NULL);
 
     // To make communication bi-directional we should use two queues.
-    movement_queue = init_queue("/movement", O_CREAT | O_WRONLY);
+    movement_queue_to_main = init_queue("/movement_to_main", O_CREAT | O_RDONLY | O_NONBLOCK);
+    movement_queue_from_main = init_queue("/movement_from_main", O_CREAT | O_WRONLY);
     sensors_queue = init_queue("/sensors", O_CREAT | O_RDONLY);
 
     uint16_t sensors_command, sensors_value;
@@ -37,13 +38,13 @@ int main() {
         switch (state) {
             case STATE_TURNING:
                 Sleep(500);
-                send_message(movement_queue, MESSAGE_FORWARD, 0);
+                send_message(movement_queue_from_main, MESSAGE_FORWARD, 0);
                 state = STATE_RUNNING;
             break;
             
             case STATE_RUNNING:
                 if (sensors_command == MESSAGE_SONAR && sensors_value < 500) {
-                    send_message(movement_queue, MESSAGE_TURN, 10);
+                    send_message(movement_queue_from_main, MESSAGE_TURN, 10);
                     state = STATE_TURNING;
                 } 
             break;
