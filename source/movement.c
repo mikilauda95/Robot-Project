@@ -27,7 +27,7 @@ struct coord {
 } coord;
 
 // angle between robot nose and the x axis
-float heading = 90;
+int heading = 90;
 
 // true when robot is moving straight
 bool do_track_position = false;
@@ -36,6 +36,7 @@ void *position_tracker(void* param) {
 	int rspeed, lspeed;
 	float llin_speed, rlin_speed, lpos, rpos, distance;
 	double radius = 2.7;
+    double cal_factor = 2.2;	
 
 	while (1) {
 		if (do_track_position) {
@@ -46,8 +47,8 @@ void *position_tracker(void* param) {
 			lpos = llin_speed * POS_CALC_PERIOD_MS / 1000;
 			rpos = rlin_speed * POS_CALC_PERIOD_MS / 1000;
 			distance = (lpos+rpos)/2;
-			coord.x += distance * cos(heading*M_PI/180);
-			coord.y += distance * sin(heading*M_PI/180);
+			coord.x += distance * cos( heading*M_PI/180) * cal_factor;
+			coord.y += distance * sin( heading*M_PI/180) * cal_factor;
 		} else {
 			distance = 0;
 			lpos = 0;
@@ -61,11 +62,12 @@ void *position_tracker(void* param) {
 void *position_sender(void* queues) {
 	mqd_t* tmp = (mqd_t*)queues;
 	mqd_t movement_queue_to_main = tmp[0];
-    double cal_factor = 2.2;
 
 	for(;;) {
-		send_message(movement_queue_to_main, MESSAGE_POS_X, coord.x * cal_factor + 0.5);
-		send_message(movement_queue_to_main, MESSAGE_POS_Y, coord.y * cal_factor + 0.5);
+		uint16_t x = (int16_t) (coord.x + 0.5);
+		uint16_t y = (int16_t) (coord.y + 0.5);
+		send_message(movement_queue_to_main, MESSAGE_POS_X, x);
+		send_message(movement_queue_to_main, MESSAGE_POS_Y, y);
 		Sleep(1000);
 	}
 
@@ -84,6 +86,9 @@ int movement_init(){
 
 	set_tacho_speed_sp(motor[L], RUN_SPEED );
 	set_tacho_speed_sp(motor[R], RUN_SPEED );
+
+	coord.x = 40.0;
+	coord.y = 10.0;
 
 	return 0;
 }
@@ -140,7 +145,7 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 			}
 		}
 
-		// float remaining = target - current_angle;
+		float remaining = target - current_angle;
 		// printf("Remaining = %f\n", remaining);
 
 		if ( abs(remaining) < 15 ) {
@@ -182,7 +187,9 @@ void *movement_start(void* queues) {
 			stop();
 			Sleep(500);
 			turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
-			heading += value;
+			printf("Heading was %d\r\n", heading);
+			heading = (heading + value) % 360;
+			printf("Heading is now %d\r\n", heading);
 			send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 		} else if (command == MESSAGE_FORWARD) {
 			forward();
