@@ -51,7 +51,8 @@ int get_message (mqd_t mq, uint16_t *command, int *value) {
     //decode the message
     temp = data & 0x0000ffff;
     // Check for negative number
-    *value = ((temp&0x8000) >0)?((int)-temp):((int)temp);
+
+    *value = ((temp&0x8000) >0)?((int)(-(temp&0x7fff))):((int)temp);
     *command = data >> 16;
     return num_bytes_received;
 }

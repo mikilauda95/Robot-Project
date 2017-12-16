@@ -186,6 +186,7 @@ void *movement_start(void* queues) {
 		get_message(movement_queue_from_main, &command, &value);
 		
 		if (command == MESSAGE_TURN_DEGREES) {
+			printf("MOVEMENT: got command TURN DEG with value: %d \n", value);
 			stop();
 			Sleep(500);
 			turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
