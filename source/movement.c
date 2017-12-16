@@ -111,7 +111,8 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 
 	delta -= 5;
 
-	uint16_t command, current_angle;
+	uint16_t command;
+	int current_angle;
 	get_message(sensor_queue, &command, &current_angle);
 
 	float target = current_angle + delta;
@@ -179,7 +180,8 @@ void *movement_start(void* queues) {
 
 	while(1) {
 	   
-		uint16_t command, value;
+		uint16_t command;
+		int value;
 
 		get_message(movement_queue_from_main, &command, &value);
 		

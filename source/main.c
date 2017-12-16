@@ -17,7 +17,7 @@ mqd_t queue_main_to_bt, queue_bt_to_main;
 mqd_t queue_sensors_to_main;
 pthread_t sensors_thread, movement_thread, bluetooth_thread;
 
-void wait_for_queues(uint16_t *command, uint16_t *value) {
+void wait_for_queues(uint16_t *command, int *value) {
 
 	static int current_queue_index = 0;
 	
@@ -39,7 +39,7 @@ void wait_for_queues(uint16_t *command, uint16_t *value) {
 
 }
 
-void event_handler(uint16_t *command, uint16_t *value) {
+void event_handler(uint16_t *command, int *value) {
 	static int state = STATE_RUNNING;
 	
 	// handle events not depending on current state	
@@ -84,6 +84,10 @@ int main() {
 
     movement_init();
 
+	for(;;) {
+		send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
+		Sleep(1000);
+	}
     if (!bt_connect()) {
 		exit(1);
 	}
@@ -104,7 +108,8 @@ int main() {
 
 	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);	
 
-	uint16_t command, value;
+	uint16_t command;
+	int value;
 	for(;;){
 		wait_for_queues(&command, &value);
 		event_handler(&command, &value);
