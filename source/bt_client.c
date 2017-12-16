@@ -97,7 +97,7 @@ void* bt_client(void *queues){
 	mqd_t bt_from_main_queue = tmp[0];
 
 	uint16_t command;
-	int value;
+	int16_t value;
 	uint16_t pos_x, pos_y;
 	bool should_send = false;
 
