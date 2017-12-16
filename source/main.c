@@ -47,7 +47,7 @@ void event_handler(uint16_t *command, uint16_t *value) {
 	switch(*command) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
-			send_message(queue_main_to_bt, *command, *value);
+			//send_message(queue_main_to_bt, *command, *value);
 			return;
 		break;
 	}
@@ -83,7 +83,7 @@ void event_handler(uint16_t *command, uint16_t *value) {
 
 // handler for ctrl+c
 void  INThandler() {
-	prinft('Caught ctrl+c, sending stop message to movement_thread\n');
+	printf("Caught ctrl+c, sending stop message to movement_thread\n");
 	send_message(queue_main_to_move, MESSAGE_STOP, 0);
 	// Let the movement thread have some time to stop motors
 	Sleep(1000);
@@ -98,10 +98,12 @@ int main() {
 
     movement_init();
 
-    if (!bt_connect()) {
+	/*
+	if (!bt_connect()) {
 		exit(1);
 	}
 	bt_wait_for_start();
+	*/
 
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
@@ -114,7 +116,7 @@ int main() {
 
 	pthread_create(&sensors_thread, NULL, sensors_start, NULL);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
-	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
