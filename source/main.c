@@ -39,27 +39,26 @@ void wait_for_queues(uint16_t *command, int *value) {
 
 }
 
-void event_handler(uint16_t *command, int *value) {
+void event_handler(uint16_t command, int value) {
 	static int state = STATE_RUNNING;
 	
 	// handle events not depending on current state	
-	switch(*command) {
+	switch(command) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
-			//send_message(queue_main_to_bt, *command, *value);
+			//send_message(queue_main_to_bt, command, value);
 			return;
 		break;
 	}
-
 
 	// handle events depending on current state
 	switch (state) {
 		case STATE_TURNING:
 
-			if (*command == MESSAGE_GYRO) {
-				send_message(queue_main_to_move, *command, *value);
+			if (command == MESSAGE_GYRO) {
+				send_message(queue_main_to_move, command, value);
 
-			}else if (*command == MESSAGE_TURN_COMPLETE) {
+			}else if (command == MESSAGE_TURN_COMPLETE) {
 				send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
 				state = STATE_RUNNING;
 			}
@@ -67,8 +66,9 @@ void event_handler(uint16_t *command, int *value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (*command == MESSAGE_SONAR) {
-				if (*value < 100) {
+			if (command == MESSAGE_SONAR) {
+				if (value < 500) {
+					
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
 					state = STATE_TURNING;
 					return;
@@ -91,6 +91,7 @@ int main() {
 	bt_wait_for_start();
 	*/
 	
+	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
 	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
@@ -110,7 +111,7 @@ int main() {
 	int value;
 	for(;;){
 		wait_for_queues(&command, &value);
-		event_handler(&command, &value);
+		event_handler(command, value);
 	}
 
 }
