@@ -110,11 +110,11 @@ void forward(){
 void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 
 	uint16_t command;
-	int current_angle;
+	int16_t current_angle;
 	get_message(sensor_queue, &command, &current_angle);
-
+	
 	float target = current_angle + delta;
-	printf("turn_degrees_gyro: destination angle is %f, current is %d\n", target, current_angle);
+	printf("turn deg: delta = %f, current = %d, target = %f\n", delta, current_angle, target);
 
 	if (delta > 0) {
 		set_tacho_speed_sp( motor[L], angle_speed );
@@ -131,7 +131,7 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 		get_message(sensor_queue, &command, &current_angle);
 		
 		if (delta < 0) {
-			if (current_angle < (target + 5) ){
+			if (current_angle < target) {
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
@@ -164,7 +164,7 @@ void *movement_start(void* queues) {
 	while(1) {
 	   
 		uint16_t command;
-		int value;
+		int16_t value;
 
 		get_message(movement_queue_from_main, &command, &value);
 		
