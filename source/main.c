@@ -18,7 +18,7 @@ mqd_t queue_main_to_bt, queue_bt_to_main;
 mqd_t queue_sensors_to_main;
 pthread_t sensors_thread, movement_thread, bluetooth_thread;
 
-void wait_for_queues(uint16_t *command, uint16_t *value) {
+void wait_for_queues(uint16_t *command, int16_t *value) {
 
 	static int current_queue_index = 0;
 	
@@ -40,7 +40,8 @@ void wait_for_queues(uint16_t *command, uint16_t *value) {
 
 }
 
-void event_handler(uint16_t command, uint16_t value) {
+
+void event_handler(uint16_t command, int16_t value) {
 	static int state = STATE_RUNNING;
 	
 	// handle events not depending on current state	
@@ -70,7 +71,7 @@ void event_handler(uint16_t command, uint16_t value) {
 			if (command == MESSAGE_SONAR) {
 				if (value < 500) {
 					
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, 90);
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
 					state = STATE_TURNING;
 					return;
 				}
@@ -111,8 +112,9 @@ int main() {
 
 	mqd_t bt_queues[] = {queue_main_to_bt, queue_bt_to_main};
 	mqd_t movement_queues[] = {queue_main_to_move, queue_move_to_main};
+	mqd_t sensor_queues[] = {queue_sensors_to_main};
 
-	pthread_create(&sensors_thread, NULL, sensors_start, NULL);
+	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
@@ -120,7 +122,8 @@ int main() {
 
 	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);	
 
-	uint16_t command, value;
+	uint16_t command;
+	int16_t value;
 	for(;;){
 		wait_for_queues(&command, &value);
 		event_handler(command, value);

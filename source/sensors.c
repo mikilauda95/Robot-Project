@@ -8,7 +8,7 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 
-void *sensors_start(){
+void *sensors_start(void *queues){
     uint8_t sonar_sn;
     uint8_t compass_sn;
     uint8_t gyro_sn;
@@ -18,17 +18,20 @@ void *sensors_start(){
     float gyro_value;
 
     ev3_sensor_init();
-    int ret = ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
-    ret = ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
-    
-    mqd_t sensors_queue = init_queue("/sensors", O_CREAT | O_WRONLY);
+    ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
+    ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
+    ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
+
+    mqd_t* tmp = (mqd_t*)queues;
+	mqd_t queue_sensor_to_main = tmp[0];
 
     while(1){
         get_sensor_value0(sonar_sn, &sonar_value );
         get_sensor_value0(gyro_sn, &gyro_value );
+
         //send to main
-        send_message(sensors_queue, MESSAGE_SONAR, (uint16_t)sonar_value);
-        send_message(sensors_queue, MESSAGE_GYRO, (uint16_t)(gyro_value + 0.5));
+        send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
+        send_message(queue_sensor_to_main, MESSAGE_GYRO, (int16_t)(gyro_value + 0.5));
         Sleep(100);
     }
 }

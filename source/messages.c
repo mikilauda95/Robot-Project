@@ -25,22 +25,24 @@ mqd_t init_queue (char* mq_name, int open_flags) {
 }
 
 /* to add an integer to the message queue */
-void send_message(mqd_t mq, uint16_t command, uint16_t value) {
-    uint32_t message = (command<<16) | value; //put the command and the value into the same int.
+void send_message(mqd_t mq, uint16_t command, int16_t value) {
+    int32_t message = ((command<<16) & 0xFFFF0000) | (value & 0xFFFF); //put the command and the value into the same int.
 
-    int status = mq_send (mq, (char *) &message, sizeof(uint32_t), 1); //sizeof for readability. 4 bytes
+    int status = mq_send (mq, (char *) &message, sizeof(int32_t), 1); //sizeof for readability. 4 bytes
     if (status == -1)
-      perror ("mq_send failure");
+      printf ("mq_send failure\n");
+
 }
 
  /* to get an integer from message queue */
-int get_message (mqd_t mq, uint16_t *command, uint16_t *value) {
+int get_message (mqd_t mq, uint16_t *command, int16_t *value) {
     ssize_t num_bytes_received = 0;
-    uint32_t data=0;
+    int32_t data=0;
 
-    num_bytes_received = mq_receive(mq, (char *) &data, sizeof(uint32_t), NULL);
+    num_bytes_received = mq_receive(mq, (char *) &data, sizeof(int32_t), NULL);
     //decode the message
     *value = data & 0x0000ffff;
     *command = data >> 16;
+    
     return num_bytes_received;
 }
