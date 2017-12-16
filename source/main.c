@@ -69,7 +69,7 @@ void event_handler(uint16_t *command, int *value) {
 		case STATE_RUNNING:
 			if (*command == MESSAGE_SONAR) {
 				if (*value < 100) {
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, 90);
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
 					state = STATE_TURNING;
 					return;
 				}
@@ -84,15 +84,12 @@ int main() {
 
     movement_init();
 
-	for(;;) {
-		send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
-		Sleep(1000);
-	}
+	
     if (!bt_connect()) {
 		exit(1);
 	}
 	bt_wait_for_start();
-
+	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
 	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
