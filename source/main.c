@@ -67,7 +67,7 @@ void event_handler(uint16_t command, uint16_t value) {
 		
 		case STATE_RUNNING:
 			if (command == MESSAGE_SONAR) {
-				if (value < 100) {
+				if (value < 500) {
 					
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, 90);
 					state = STATE_TURNING;
