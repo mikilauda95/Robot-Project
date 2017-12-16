@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
@@ -81,10 +82,22 @@ void event_handler(uint16_t command, int16_t value) {
 	}
 }
 
+// handler for ctrl+c
+void  INThandler() {
+	printf("Caught ctrl+c, sending stop message to movement_thread\n");
+	send_message(queue_main_to_move, MESSAGE_STOP, 0);
+	// Let the movement thread have some time to stop motors
+	Sleep(1000);
+	pthread_cancel(sensors_thread);
+	pthread_cancel(movement_thread);
+	pthread_cancel(bluetooth_thread);
+	
+	exit(0);
+}
+
 int main() {
 
     movement_init();
-	
 	
 	if (!bt_connect()) {
 		exit(1);
@@ -104,6 +117,8 @@ int main() {
 	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+
+	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
 	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);	
 
