@@ -24,34 +24,26 @@ mqd_t init_queue (char* mq_name, int open_flags) {
     return mqfd;
 }
 
-void send_message(mqd_t mq, uint16_t command, int value) {
-    uint16_t send_val;
+/* to add an integer to the message queue */
+void send_message(mqd_t mq, uint16_t command, int16_t value) {
+    int32_t message = ((command<<16) & 0xFFFF0000) | (value & 0xFFFF); //put the command and the value into the same int.
 
-    if (value>=0) {
-        send_val = (uint16_t)value;
-    } else {
-        send_val = (uint16_t)-value;
-        send_val = send_val | 0x8000; // Set the highest bit to 1 to indicate negative number. 
-        // TODO check that highest bit was not already 1. Negative numbers cannot be as big as the positive.
-    }
-    uint32_t message = (command<<16) | send_val; //put the command and the value into the same int.
-
-    int status = mq_send (mq, (char *) &message, sizeof(uint32_t), 1); //sizeof for readability. 4 bytes
+    int status = mq_send (mq, (char *) &message, sizeof(int32_t), 1); //sizeof for readability. 4 bytes
     if (status == -1)
-      perror ("mq_send failure");
+      printf ("mq_send failure\n");
+
 }
 
-
-int get_message (mqd_t mq, uint16_t *command, int *value) {
+ /* to get an integer from message queue */
+int get_message (mqd_t mq, uint16_t *command, int16_t *value) {
     ssize_t num_bytes_received = 0;
-    uint32_t data=0;
-    int temp;
+    int32_t data=0;
 
-    num_bytes_received = mq_receive(mq, (char *) &data, sizeof(uint32_t), NULL);
+    num_bytes_received = mq_receive(mq, (char *) &data, sizeof(int32_t), NULL);
     //decode the message
-    temp = data & 0x0000ffff;
-    // Check for negative number
-    *value = ((temp&0x8000) >0)?((int)-temp):((int)temp);
+    *value = data & 0x0000ffff;
     *command = data >> 16;
+    
     return num_bytes_received;
+    
 }
