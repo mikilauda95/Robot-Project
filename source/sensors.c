@@ -26,7 +26,6 @@ void *sensors_start(void *queues){
 	mqd_t queue_sensor_to_main = tmp[0];
 
     while(1){
-        get_sensor_value0(compass_sn, &compass_value );
         get_sensor_value0(sonar_sn, &sonar_value );
         get_sensor_value0(gyro_sn, &gyro_value );
 

@@ -137,30 +137,15 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 				break;
 			}
 		}else {
-			if (current_angle > target){
+			if (current_angle > (target - 5) ){
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
 			}
 		}
 
-		float remaining = target - current_angle;
-		// printf("Remaining = %f\n", remaining);
-
-		if ( abs(remaining) < 15 ) {
-			if (delta > 0) {
-				set_tacho_speed_sp( motor[L], angle_speed / 6 );
-				set_tacho_speed_sp( motor[R], -angle_speed / 6 );
-				multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
-			}
-			else {
-				set_tacho_speed_sp( motor[L], -angle_speed / 6 );
-				set_tacho_speed_sp( motor[R], angle_speed / 6 );
-				multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
-			}
-		}
 	}
-
+	
 }
 
 
@@ -184,6 +169,7 @@ void *movement_start(void* queues) {
 		get_message(movement_queue_from_main, &command, &value);
 		
 		if (command == MESSAGE_TURN_DEGREES) {
+			printf("MOVEMENT: got command TURN DEG with value: %d \n", value);
 			stop();
 			Sleep(500);
 			turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);

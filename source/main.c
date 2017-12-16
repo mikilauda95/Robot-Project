@@ -40,27 +40,26 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 }
 
 
-void event_handler(uint16_t *command, int16_t *value) {
+void event_handler(uint16_t command, int16_t value) {
 	static int state = STATE_RUNNING;
 	
 	// handle events not depending on current state	
-	switch(*command) {
+	switch(command) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
-			send_message(queue_main_to_bt, *command, *value);
+			send_message(queue_main_to_bt, command, value);
 			return;
 		break;
 	}
-
 
 	// handle events depending on current state
 	switch (state) {
 		case STATE_TURNING:
 
-			if (*command == MESSAGE_GYRO) {
-				send_message(queue_main_to_move, *command, *value);
+			if (command == MESSAGE_GYRO) {
+				send_message(queue_main_to_move, command, value);
 
-			}else if (*command == MESSAGE_TURN_COMPLETE) {
+			}else if (command == MESSAGE_TURN_COMPLETE) {
 				send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
 				state = STATE_RUNNING;
 			}
@@ -68,9 +67,10 @@ void event_handler(uint16_t *command, int16_t *value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (*command == MESSAGE_SONAR) {
-				if (*value < 100) {
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, prev);
+			if (command == MESSAGE_SONAR) {
+				if (value < 500) {
+					
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
 					state = STATE_TURNING;
 					return;
 				}
@@ -111,7 +111,7 @@ int main() {
 	int16_t value;
 	for(;;){
 		wait_for_queues(&command, &value);
-		event_handler(&command, &value);
+		event_handler(command, value);
 	}
 
 }
