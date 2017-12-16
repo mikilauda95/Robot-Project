@@ -1,1 +1,2 @@
-int movement_start();
+int movement_init();
+void *movement_start(void* queues);
