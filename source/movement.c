@@ -163,20 +163,27 @@ void *movement_start(void* queues) {
 	while(1) {
 	   
 		uint16_t command, value;
-
 		get_message(movement_queue_from_main, &command, &value);
-		
-		if (command == MESSAGE_TURN_DEGREES) {
-			stop();
-			Sleep(500);
-			turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
-			printf("Heading was %d\r\n", heading);
-			heading = (heading + value) % 360;
-			printf("Heading is now %d\r\n", heading);
-			send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
-		} else if (command == MESSAGE_FORWARD) {
-			forward();
-		}
 
+		switch (command) {
+			case MESSAGE_TURN_DEGREES:
+				stop();
+				Sleep(500);
+				turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
+				printf("Heading was %d\r\n", heading);
+				heading = (heading + value) % 360;
+				printf("Heading is now %d\r\n", heading);
+				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
+			break;
+			
+			case MESSAGE_FORWARD:
+				forward();
+			break;
+			
+			case MESSAGE_STOP:
+				stop();
+			break;
+
+		}
 	}
 }
