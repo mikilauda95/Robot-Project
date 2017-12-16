@@ -29,7 +29,6 @@ void *sensors_start(void *queues){
         get_sensor_value0(sonar_sn, &sonar_value );
         get_sensor_value0(gyro_sn, &gyro_value );
 
-        printf("%f\n", gyro_value);
         //send to main
         send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
         send_message(queue_sensor_to_main, MESSAGE_GYRO, (int16_t)(gyro_value + 0.5));
