@@ -189,7 +189,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(500);
-				turn_degrees(value, ANG_SPEED, movement_queue_from_main);
+				turn_degrees(value, ANG_SPEED);
 				printf("Heading was %d\r\n", heading);
 				heading = (heading + value) % 360;
 				printf("Heading is now %d\r\n", heading);
