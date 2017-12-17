@@ -60,7 +60,6 @@ void *position_sender(void* queues) {
 		}
 		uint16_t x = (int16_t) (coord.x + 0.5);
 		uint16_t y = (int16_t) (coord.y + 0.5);
-		printf("position_sender: Sending x: %d, y: %d\n",x,y);
 		send_message(movement_queue_to_main, MESSAGE_POS_X, x);
 		send_message(movement_queue_to_main, MESSAGE_POS_Y, y);
 		Sleep(1000);
@@ -156,8 +155,7 @@ void *movement_start(void* queues) {
 	set_tacho_position(motor[L], 0);
 	set_tacho_position(motor[R], 0);
 
-	pthread_t position_tracker_thread, position_sender_thread;
-	//pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
+	pthread_t position_sender_thread;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
 	while(1) {
