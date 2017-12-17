@@ -13,6 +13,8 @@
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 75 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.05
+#define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
+#define WHEEL_RADIUS 2.7
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -31,77 +33,21 @@ int heading = 90;
 
 // true when robot is moving straight
 bool do_track_position = false;
-
-void *position_tracker(void* param) {
-	int rspeed, lspeed;
-	float llin_speed, rlin_speed, lpos, rpos, distance;
-	double radius = 2.7;
-    double cal_factor = 2.2;	
-
-	while (1) {
-		if (do_track_position) {
-			get_tacho_speed(motor[L], &lspeed); 		// deg per second
-			get_tacho_speed(motor[R], &rspeed); 		// deg per second
-			llin_speed = lspeed * radius * M_PI/180;	// cm per second
-			rlin_speed = rspeed * radius * M_PI/180;    // cm per second
-			lpos = llin_speed * POS_CALC_PERIOD_MS / 1000;
-			rpos = rlin_speed * POS_CALC_PERIOD_MS / 1000;
-			distance = (lpos+rpos)/2;
-			coord.x += distance * cos( heading*M_PI/180) * cal_factor;
-			coord.y += distance * sin( heading*M_PI/180) * cal_factor;
-		} else {
-			distance = 0;
-			lpos = 0;
-			rpos = 0;
-		}
-
-		Sleep(POS_CALC_PERIOD_MS);
-	}
-}
+int prev_l_pos = 0;
+int prev_r_pos = 0;
 
 void update_position() {
 	// this function relies on the position to be set to zero after every turn.
 	// the idea is to call this every time we whish to send our position. 
-	int rpos, lpos, count_per_rot;
-	float distance;
-	float radius = 2.7;
-    float cal_factor = 2.2;
-	get_tacho_count_per_rot(motor[R], &count_per_rot);  // TODO make this value a #defined constant
-	get_tacho_position_sp(motor[R], &rpos);
-	get_tacho_position_sp(motor[L], &lpos);
-	distance = ((lpos+rpos)/2);
-	distance = (distance/count_per_rot) * 2*M_PI*radius;
-	coord.x += distance * cos( heading*M_PI/180) * cal_factor;
-	coord.y += distance * sin( heading*M_PI/180) * cal_factor;
-}
-void * position_tracker2() {
-	int lpos, rpos;
-	int lzero, rzero;
-	int count_per_rot;
-	float distance;
-	float radius = 2.7;
-    float cal_factor = 2.2;
-	get_tacho_count_per_rot(motor[R], &count_per_rot);
-
-	get_tacho_position_sp(motor[R], &rzero);
-	get_tacho_position_sp(motor[L], &lzero);
-
-	while(do_track_position) {
-		get_tacho_position_sp(motor[R], &rpos);
-		get_tacho_position_sp(motor[L], &lpos);
-		lpos = lpos - lzero;
-		rpos = rpos - rzero;
-		// distance is portion of full turn times circumference of wheel.
-		distance = (((lpos+rpos)/2)/count_per_rot) * 2*M_PI*radius;
-
-		// Update zero to current position
-		lzero = lpos;
-		rzero = rpos;
-		
-		coord.x += distance * cos( heading*M_PI/180) * cal_factor;
-		coord.y += distance * sin( heading*M_PI/180) * cal_factor;
-		Sleep(100);
-	}
+	int rpos, lpos;
+	get_tacho_position(motor[R], &rpos);
+	get_tacho_position(motor[L], &lpos);
+	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
+	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	prev_l_pos = lpos;
+	prev_r_pos = rpos;
+	coord.x += distance * cos( heading*M_PI/180);
+	coord.y += distance * sin( heading*M_PI/180); 
 }
 
 void *position_sender(void* queues) {
@@ -143,6 +89,7 @@ int movement_init(){
 }
 
 void stop(){
+	update_position(); // make sure to update the position when we stop. 
 	do_track_position = false;
 	set_tacho_command_inx(motor[L], TACHO_STOP);
 	set_tacho_command_inx(motor[R], TACHO_STOP);
@@ -206,6 +153,9 @@ void *movement_start(void* queues) {
 	mqd_t movement_queue_from_main = tmp[0];
 	mqd_t movement_queue_to_main = tmp[1];
 
+	set_tacho_position(motor[L], 0);
+	set_tacho_position(motor[R], 0);
+
 	pthread_t position_tracker_thread, position_sender_thread;
 	//pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
@@ -226,8 +176,10 @@ void *movement_start(void* queues) {
 				printf("Heading is now %d\r\n", heading);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
-				set_tacho_position_sp(motor[L], 0);
-				set_tacho_position_sp(motor[R], 0);
+				set_tacho_position(motor[L], 0);
+				set_tacho_position(motor[R], 0);
+				prev_l_pos = 0;
+				prev_r_pos = 0;
 			break;
 			
 			case MESSAGE_FORWARD:
