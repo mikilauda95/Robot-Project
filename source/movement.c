@@ -11,7 +11,7 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
-#define ANG_SPEED 75 // Wheel speed when turning
+#define ANG_SPEED 100 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.05
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
@@ -127,26 +127,37 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 		multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
 	}
 
+	int16_t remaining;
 	for (;;) {
 		get_message(sensor_queue, &command, &current_angle);
+		remaining = target - current_angle;
+		printf("remaining: %d\n", remaining);
 		
 		if (delta < 0) {
-			if (current_angle < target) {
+			if (current_angle <= target) {
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
 			}
 		}else {
-			if (current_angle > (target - 5) ){
+			if (current_angle >= target ){
 				set_tacho_command_inx(motor[L], TACHO_STOP);
 				set_tacho_command_inx(motor[R], TACHO_STOP);
 				break;
 			}
 		}
 
+
 	}
-	
+
+	if(remaining == 0){
+		return;
+	} else {
+		turn_degrees_gyro(remaining, angle_speed / 2, sensor_queue);
+	}
+
 }
+
 
 
 void *movement_start(void* queues) {
