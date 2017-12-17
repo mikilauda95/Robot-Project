@@ -12,7 +12,7 @@
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 75 // Wheel speed when turning
-#define DEGREE_TO_LIN 2.4
+#define DEGREE_TO_LIN 2.4 // Seems to vary with battery voltage
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -182,13 +182,6 @@ void *movement_start(void* queues) {
 	pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
-	
-	turn_degrees(360, 100);
-	Sleep(5000);
-	turn_degrees(-360, 100);
-	Sleep(2000);
-
-	
 	while(1) {
 	   
 		uint16_t command;
