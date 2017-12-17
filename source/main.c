@@ -98,7 +98,7 @@ void  INThandler() {
 int main() {
 
     movement_init();
-	
+
 	if (!bt_connect()) {
 		exit(1);
 	}
@@ -128,5 +128,4 @@ int main() {
 		wait_for_queues(&command, &value);
 		event_handler(command, value);
 	}
-
 }

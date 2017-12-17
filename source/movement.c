@@ -12,7 +12,7 @@
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 75 // Wheel speed when turning
-#define DEGREE_TO_LIN 2.05
+#define DEGREE_TO_LIN 2.4 // Seems to vary with battery voltage
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -107,6 +107,27 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 
+void turn_degrees(float angle, int turn_speed) {
+
+	set_tacho_speed_sp( motor[L], turn_speed );
+	set_tacho_speed_sp( motor[R], turn_speed );
+	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
+	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+	Sleep(1000);
+	
+	int spd;
+	get_tacho_speed(motor[L], &spd);
+	// Block until done turning
+	
+	while ( spd != 0 ) { 
+		get_tacho_speed(motor[L], &spd);
+		printf("speed: %d \n", spd);
+		Sleep(10);
+	}
+
+}
+
 void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 
 	uint16_t command;
@@ -171,7 +192,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(500);
-				turn_degrees_gyro(value, ANG_SPEED, movement_queue_from_main);
+				turn_degrees(value, ANG_SPEED);
 				printf("Heading was %d\r\n", heading);
 				heading = (heading + value) % 360;
 				printf("Heading is now %d\r\n", heading);
