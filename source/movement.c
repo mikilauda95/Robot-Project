@@ -59,6 +59,21 @@ void *position_tracker(void* param) {
 	}
 }
 
+void update_position() {
+	// this function relies on the position to be set to zero after every turn.
+	// the idea is to call this every time we whish to send our position. 
+	int rpos, lpos, count_per_rot;
+	float distance;
+	float radius = 2.7;
+    float cal_factor = 2.2;
+	get_tacho_count_per_rot(motor[R], &count_per_rot);  // TODO make this value a #defined constant
+	get_tacho_position_sp(motor[R], &rpos);
+	get_tacho_position_sp(motor[L], &lpos);
+	distance = ((lpos+rpos)/2);
+	distance = (distance/count_per_rot) * 2*M_PI*radius;
+	coord.x += distance * cos( heading*M_PI/180) * cal_factor;
+	coord.y += distance * sin( heading*M_PI/180) * cal_factor;
+}
 void * position_tracker2() {
 	int lpos, rpos;
 	int lzero, rzero;
@@ -94,8 +109,12 @@ void *position_sender(void* queues) {
 	mqd_t movement_queue_to_main = tmp[0];
 
 	for(;;) {
+		if(do_track_position){
+			update_position();
+		}
 		uint16_t x = (int16_t) (coord.x + 0.5);
 		uint16_t y = (int16_t) (coord.y + 0.5);
+		printf("position_sender: Sending x: %d, y: %d\n",x,y);
 		send_message(movement_queue_to_main, MESSAGE_POS_X, x);
 		send_message(movement_queue_to_main, MESSAGE_POS_Y, y);
 		Sleep(1000);
@@ -188,7 +207,7 @@ void *movement_start(void* queues) {
 	mqd_t movement_queue_to_main = tmp[1];
 
 	pthread_t position_tracker_thread, position_sender_thread;
-	pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
+	//pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
 	while(1) {
@@ -206,6 +225,9 @@ void *movement_start(void* queues) {
 				heading = (heading + value) % 360;
 				printf("Heading is now %d\r\n", heading);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
+				// set position to 0 after a turn. It's important that motors are not turning when this is done
+				set_tacho_position_sp(motor[L], 0);
+				set_tacho_position_sp(motor[R], 0);
 			break;
 			
 			case MESSAGE_FORWARD:
