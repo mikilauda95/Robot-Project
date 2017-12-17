@@ -2,3 +2,5 @@
 /build/*
 /ev3dev-c/
 robot@*
+server/*.o
+server/server
