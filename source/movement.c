@@ -59,6 +59,36 @@ void *position_tracker(void* param) {
 	}
 }
 
+void * position_tracker2() {
+	int lpos, rpos;
+	int lzero, rzero;
+	int count_per_rot;
+	float distance;
+	float radius = 2.7;
+    float cal_factor = 2.2;
+	get_tacho_count_per_rot(motor[R], &count_per_rot);
+
+	get_tacho_position_sp(motor[R], &rzero);
+	get_tacho_position_sp(motor[L], &lzero);
+
+	while(do_track_position) {
+		get_tacho_position_sp(motor[R], &rpos);
+		get_tacho_position_sp(motor[L], &lpos);
+		lpos = lpos - lzero;
+		rpos = rpos - rzero;
+		// distance is portion of full turn times circumference of wheel.
+		distance = (((lpos+rpos)/2)/count_per_rot) * 2*M_PI*radius;
+
+		// Update zero to current position
+		lzero = lpos;
+		rzero = rpos;
+		
+		coord.x += distance * cos( heading*M_PI/180) * cal_factor;
+		coord.y += distance * sin( heading*M_PI/180) * cal_factor;
+		Sleep(100);
+	}
+}
+
 void *position_sender(void* queues) {
 	mqd_t* tmp = (mqd_t*)queues;
 	mqd_t movement_queue_to_main = tmp[0];
