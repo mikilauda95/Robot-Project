@@ -4,3 +4,4 @@
 robot@*
 server/*.o
 server/server
+main
