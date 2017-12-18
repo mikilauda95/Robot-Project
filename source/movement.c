@@ -11,8 +11,10 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
-#define ANG_SPEED 300 // Wheel speed when turning
-#define DEGREE_TO_LIN 2.4 // Seems to vary with battery voltage
+#define ANG_SPEED 200 // Wheel speed when turning
+#define DEGREE_TO_LIN 2.4 // Seems to depend on battery voltage
+#define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
+#define WHEEL_RADIUS 2.7
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -31,32 +33,21 @@ int heading = 90;
 
 // true when robot is moving straight
 bool do_track_position = false;
+int prev_l_pos = 0;
+int prev_r_pos = 0;
 
-void *position_tracker(void* param) {
-	int rspeed, lspeed;
-	float llin_speed, rlin_speed, lpos, rpos, distance;
-	double radius = 2.7;
-    double cal_factor = 2.2;	
-
-	while (1) {
-		if (do_track_position) {
-			get_tacho_speed(motor[L], &lspeed); 		// deg per second
-			get_tacho_speed(motor[R], &rspeed); 		// deg per second
-			llin_speed = lspeed * radius * M_PI/180;	// cm per second
-			rlin_speed = rspeed * radius * M_PI/180;    // cm per second
-			lpos = llin_speed * POS_CALC_PERIOD_MS / 1000;
-			rpos = rlin_speed * POS_CALC_PERIOD_MS / 1000;
-			distance = (lpos+rpos)/2;
-			coord.x += distance * cos( heading*M_PI/180) * cal_factor;
-			coord.y += distance * sin( heading*M_PI/180) * cal_factor;
-		} else {
-			distance = 0;
-			lpos = 0;
-			rpos = 0;
-		}
-
-		Sleep(POS_CALC_PERIOD_MS);
-	}
+void update_position() {
+	// this function relies on the position to be set to zero after every turn.
+	// the idea is to call this every time we whish to send our position. 
+	int rpos, lpos;
+	get_tacho_position(motor[R], &rpos);
+	get_tacho_position(motor[L], &lpos);
+	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
+	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	prev_l_pos = lpos;
+	prev_r_pos = rpos;
+	coord.x += distance * cos( heading*M_PI/180);
+	coord.y += distance * sin( heading*M_PI/180); 
 }
 
 void *position_sender(void* queues) {
@@ -64,6 +55,9 @@ void *position_sender(void* queues) {
 	mqd_t movement_queue_to_main = tmp[0];
 
 	for(;;) {
+		if(do_track_position){
+			update_position();
+		}
 		uint16_t x = (int16_t) (coord.x + 0.5);
 		uint16_t y = (int16_t) (coord.y + 0.5);
 		send_message(movement_queue_to_main, MESSAGE_POS_X, x);
@@ -94,6 +88,7 @@ int movement_init(){
 }
 
 void stop(){
+	update_position(); // make sure to update the position when we stop. 
 	do_track_position = false;
 	set_tacho_command_inx(motor[L], TACHO_STOP);
 	set_tacho_command_inx(motor[R], TACHO_STOP);
@@ -178,8 +173,10 @@ void *movement_start(void* queues) {
 	mqd_t movement_queue_from_main = tmp[0];
 	mqd_t movement_queue_to_main = tmp[1];
 
-	pthread_t position_tracker_thread, position_sender_thread;
-	pthread_create(&position_tracker_thread, NULL, position_tracker, NULL);
+	set_tacho_position(motor[L], 0);
+	set_tacho_position(motor[R], 0);
+
+	pthread_t position_sender_thread;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 
 	while(1) {
@@ -197,6 +194,11 @@ void *movement_start(void* queues) {
 				heading = (heading + value) % 360;
 				printf("Heading is now %d\r\n", heading);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
+				// set position to 0 after a turn. It's important that motors are not turning when this is done
+				set_tacho_position(motor[L], 0);
+				set_tacho_position(motor[R], 0);
+				prev_l_pos = 0;
+				prev_r_pos = 0;
 			break;
 			
 			case MESSAGE_FORWARD:
