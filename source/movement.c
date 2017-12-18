@@ -11,7 +11,7 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
-#define ANG_SPEED 75 // Wheel speed when turning
+#define ANG_SPEED 200 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.4 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
@@ -109,7 +109,7 @@ void turn_degrees(float angle, int turn_speed) {
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
 	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	Sleep(1000);
+	Sleep(10);
 	
 	int spd;
 	get_tacho_speed(motor[L], &spd);
@@ -188,7 +188,7 @@ void *movement_start(void* queues) {
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
-				Sleep(500);
+				Sleep(150);
 				turn_degrees(value, ANG_SPEED);
 				printf("Heading was %d\r\n", heading);
 				heading = (heading + value) % 360;
