@@ -1,19 +1,50 @@
-#This makefile will output files to the ./build directory. After running make, you can transfer the correct file to the robot and run it
+# Makefile for compiling an ev3 project with the following folder structure:
+#
+# 		Makefile (this file)
+# 		bt_resources/
+#			libbluetooth.so
+#		include/
+# 			bt_client.h
+#			messages.h
+#			movement.h
+#			sensors.h
+#	 	source/
+#			bt_client.c
+#			messages.c
+#			movement.c
+#			sensors.c
+#			main.c
+#
+# The main executable will be located in the same directory as you ran 
+# "Make" from. To add new .c files, simply add them to the OBJS variable.
 
-default:
-	mkdir -p ./build
-	arm-linux-gnueabi-gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/movement.c -o ./build/movement.o
-	arm-linux-gnueabi-gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/sensors.c -o ./build/sensors.o
-	arm-linux-gnueabi-gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/main.c -o ./build/main.o
-	arm-linux-gnueabi-gcc -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/bt_client.c -o ./build/bt_client.o
-	arm-linux-gnueabi-gcc -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/messages.c -o ./build/messages.o
-	arm-linux-gnueabi-gcc ./build/messages.o ./build/sensors.o ./build/movement.o ./build/bt_client.o ./build/main.o -Wall -L./bt_resources -lrt -lm -lev3dev-c -lpthread -lbluetooth -o ./build/main
+CC 			= arm-linux-gnueabi-gcc
+CFLAGS 		= -O2 -g -std=gnu99 -W -Wall -Wno-comment
+INCLUDES 	= -I./ev3dev-c/source/ev3 -I./include/
+LDFLAGS 	= -L./bt_resources -lrt -lm -lev3dev-c -lpthread -lbluetooth
+BUILD_DIR 	= ./build
+SOURCE_DIR 	= ./source
 
-# not tested, might work.
-robot: 
-	mkdir -p ./build
-	gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/movement.c -o ./build/movement.o
-	gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/sensors.c -o ./build/sensors.o
-	gcc -I./ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/main.c -o ./build/main.o
-	gcc -O2 -std=gnu99 -W -Wall -Wno-comment -c ./source/messages.c -o ./build/messages.o
-	gcc ./build/messages.o ./build/sensors.o ./build/movement.o ./build/main.o -Wall -lrt -lpthread -lm -lev3dev-c -o ./build/main
+OBJS = \
+	$(BUILD_DIR)/movement.o \
+	$(BUILD_DIR)/sensors.o \
+	$(BUILD_DIR)/bt_client.o \
+	$(BUILD_DIR)/messages.o \
+	$(BUILD_DIR)/main.o
+
+all: main
+
+main: ${OBJS}
+	$(CC) $(INCLUDES) $(CFLAGS) $(OBJS) $(LDFLAGS) -o main
+
+$(OBJS): $(BUILD_DIR)
+
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)
+
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
+	$(CC) -c $(SOURCE_DIR)/$*.c $(INCLUDES) -o $(BUILD_DIR)/$*.o
+
+clean:
+	rm -f $(BUILD_DIR)/*.o
+	rm ./main
