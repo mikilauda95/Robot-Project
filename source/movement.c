@@ -9,7 +9,7 @@
 #include "messages.h"
 
 #define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 67
+#define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 200 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.4 // Seems to depend on battery voltage
@@ -117,7 +117,6 @@ void turn_degrees(float angle, int turn_speed) {
 	
 	while ( spd != 0 ) { 
 		get_tacho_speed(motor[L], &spd);
-		printf("speed: %d \n", spd);
 		Sleep(10);
 	}
 
@@ -190,9 +189,6 @@ void *movement_start(void* queues) {
 				stop();
 				Sleep(150);
 				turn_degrees(value, ANG_SPEED);
-				printf("Heading was %d\r\n", heading);
-				heading = (heading + value) % 360;
-				printf("Heading is now %d\r\n", heading);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);
