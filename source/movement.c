@@ -11,7 +11,7 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 500 // Max is 1050
-#define ANG_SPEED 200 // Wheel speed when turning
+#define ANG_SPEED 250 // Wheel speed when turning
 #define DEGREE_TO_LIN 2.4 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
@@ -102,8 +102,9 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 
-void turn_degrees(float angle, int turn_speed) {
-
+void turn_degrees(float angle) {
+	// Base the turn speed on the distance
+	int turn_speed = angle>5?ANG_SPEED:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
@@ -188,7 +189,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(150);
-				turn_degrees(value, ANG_SPEED);
+				turn_degrees(value);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);
