@@ -40,20 +40,21 @@ void *sensors_start(void *queues){
     ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
     ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
     ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
-    get_sensor_value0(compass_sn, &compass_zero);
+    get_sensor_value0(compass_sn, &compass_value);
+    compass_zero = compass_value - 90;
     printf("compass zero %f\n", compass_zero);
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_sensor_to_main = tmp[0];
 
     while(1){
         get_sensor_value0(sonar_sn, &sonar_value);
-        get_sensor_value0(gyro_sn, &gyro_value);
+        //get_sensor_value0(gyro_sn, &gyro_value);
         get_sensor_value0(compass_sn, &compass_value);
         compass_value = compensate_compass(compass_value);
         //send to main
         send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
-        //send_message(queue_sensor_to_main, MESSAGE_GYRO, (int16_t)(gyro_value + 0.5));
-        send_message(queue_sensor_to_main, MESSAGE_COMPASS, (int16_t)(compass_value + 0.5));
+        //send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(gyro_value + 0.5));
+        send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(compass_value + 0.5));
         //printf("Compass: %f \n", compass_value);
         Sleep(10);
     }
