@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include "ev3.h"
+#include "ev3_sensor.h"
 
 #include "messages.h"
 
@@ -14,6 +16,7 @@
 
 #define ANGLE_INDEX 0
 #define DISTANCE_INDEX 1
+#define Sleep(msec) usleep((msec)*1000)
 
 char map[80][80] = {UNMAPPED};
 int robot_x = 40;
@@ -82,6 +85,16 @@ void messageHandler(uint16_t command, int16_t value) {
 }
 
 void *mapping_start(void* queues){
+    uint8_t sonar_sn;
+    uint8_t compass_sn;
+
+    float compass_value;
+    float sonar_value;
+    
+    ev3_sensor_init();
+    ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
+    ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
+
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_from_main = tmp[0];
 
@@ -89,7 +102,13 @@ void *mapping_start(void* queues){
     int16_t value;
 
     while(1) {
-        get_message(queue_from_main, &command, &value);
-        messageHandler(command, value);
+        get_sensor_value0(sonar_sn, &sonar_value);
+        get_sensor_value0(compass_sn, &compass_value);
+        updateMap(compass_value, (int16_t) sonar_value);
+        Sleep(10);
+        if (compass_value >350) {
+            printMap();
+        }
+        //messageHandler(command, value);
     }
 }
