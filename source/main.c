@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <math.h>
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
@@ -39,9 +40,7 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 			return;
 		}
 	}
-
 }
-
 
 void event_handler(uint16_t command, int16_t value) {
 	static int state = STATE_RUNNING;
@@ -82,10 +81,16 @@ void event_handler(uint16_t command, int16_t value) {
 		
 		case STATE_RUNNING:
 			if (command == MESSAGE_SONAR) {
-				if (value < 300) {
-					
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
-					target_heading -= 90;
+				if (value < 150) {
+					int turn;
+					if (rand()%2 >=1) {
+						turn = -90;
+					} else {
+						turn = 90;
+					}
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, turn);
+					target_heading += turn;
+					target_heading %= 360;
 					if (target_heading < 0){target_heading+=360;}
 					state = STATE_TURNING;
 					return;

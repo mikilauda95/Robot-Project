@@ -68,6 +68,7 @@ void *position_sender(void* queues) {
 }
 
 int movement_init(){
+	srand(time(NULL));
 	ev3_tacho_init();
 
 	ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &motor[L], 0 );

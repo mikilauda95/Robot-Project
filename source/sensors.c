@@ -39,6 +39,9 @@ void *sensors_start(void *queues){
     ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
     ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
     ev3_search_sensor(LEGO_EV3_GYRO, &gyro_sn, 0);
+    set_sensor_mode_inx(gyro_sn, GYRO_GYRO_RATE);
+    set_sensor_mode_inx(gyro_sn, GYRO_GYRO_ANG);
+
     get_sensor_value0(compass_sn, &compass_zero);
     compass_zero -= errors[(int)compass_zero];
     printf("compass zero %f\n", compass_zero);
