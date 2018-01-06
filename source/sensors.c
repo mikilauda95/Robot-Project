@@ -51,10 +51,16 @@ void *sensors_start(void *queues){
         get_sensor_value0(compass_sn, &compass_value);
         compass_value = compensate_compass(compass_value);
         //send to main
+         int gyro = (int)gyro_value%360;
+        if (gyro <0) {
+            gyro += 360;
+        }
         send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
-        //send_message(queue_sensor_to_main, MESSAGE_GYRO, (int16_t)(gyro_value + 0.5));
-        send_message(queue_sensor_to_main, MESSAGE_COMPASS, (int16_t)(compass_value + 0.5));
+        send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(gyro + 0.5));
+
+       
+        //send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(compass_value + 0.5));
         //printf("compass: %d\n", (int16_t)(compass_value + 0.5));
-        Sleep(10);
+        Sleep(40);
     }
 }
