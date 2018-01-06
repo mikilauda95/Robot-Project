@@ -12,7 +12,7 @@
 #define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
-#define DEGREE_TO_LIN 2.4 // Seems to depend on battery voltage
+#define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
 
@@ -104,7 +104,7 @@ void forward(){
 
 void turn_degrees(float angle) {
 	// Base the turn speed on the distance
-	int turn_speed = angle>5?ANG_SPEED:100;
+	int turn_speed = (angle>10||angle<-10)?ANG_SPEED:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
