@@ -28,7 +28,8 @@ void *sensors_start(void *queues){
         get_sensor_value0(sonar_sn, &sonar_value);
         get_sensor_value0(gyro_sn, &gyro_value);
         //send to main
-         int gyro = (int)gyro_value%360;
+        gyro_value +=90;
+        int gyro = (int)gyro_value%360;
         if (gyro <0) {
             gyro += 360;
         }

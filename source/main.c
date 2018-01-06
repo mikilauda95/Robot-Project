@@ -18,7 +18,7 @@ mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
 mqd_t queue_sensors_to_main;
 pthread_t sensors_thread, movement_thread, bluetooth_thread;
-int target_heading = 0;
+int target_heading = 90;
 int current_heading;
 
 void wait_for_queues(uint16_t *command, int16_t *value) {
@@ -72,6 +72,7 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 				} else {
 					printf("Turn complete! \n");
+					send_message(queue_main_to_move, MESSAGE_HEADING, current_heading);
 					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
 					state = STATE_RUNNING;
 				}
@@ -137,6 +138,8 @@ int main() {
 
 	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
+	//pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
+
 	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
