@@ -14,6 +14,7 @@
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
+#define MAX_DIST 800 // Max distance in mm
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = 40;
@@ -42,16 +43,18 @@ void updateMap(float ang, int dist){
     } else {
 
     }
-    for (int i = 0; i < dist; i+=50) {
+    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=50) {
         y = (i * sin(ang/180 * M_PI))/50;
         x = (i * cos(ang/180 * M_PI))/50;
         if (map[y + robot_y][x + robot_x] == UNMAPPED) {
             map[y + robot_y][x + robot_x] = EMPTY;
         }
     }
-    x = (dist * cos(ang/180 * M_PI)) / 50;
-    y = (dist * sin(ang/180 * M_PI)) / 50;
-    map[y + robot_y][x + robot_x] = OBSTACLE;
+    if (dist < MAX_DIST) {
+        x = (dist * cos(ang/180 * M_PI)) / 50;
+        y = (dist * sin(ang/180 * M_PI)) / 50;
+        map[y + robot_y][x + robot_x] = OBSTACLE;
+    }
     map[robot_y][robot_x] = 7;
 }
 
@@ -81,6 +84,7 @@ void messageHandler(uint16_t command, int16_t value) {
             data_pair[1] = value;
             break;
         case MESSAGE_PRINT_MAP:
+            printf("GOT print message \n");
             printMap();
             break;
     }

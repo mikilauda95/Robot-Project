@@ -147,12 +147,12 @@ int main() {
 	bt_wait_for_start();
 	*/
 	
-	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
-	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_bt 			= init_queue("/bt_from_main", O_CREAT | O_RDWR);
-	queue_bt_to_main 			= init_queue("/bt_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_mapping 		= init_queue("/main_to_mapping6", O_CREAT | O_RDWR);
+	queue_sensors_to_main 		= init_queue("/sensors1", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_move 			= init_queue("/movement_from_main1", O_CREAT | O_RDWR);
+	queue_move_to_main 			= init_queue("/movement_to_main1", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_bt 			= init_queue("/bt_from_main1", O_CREAT | O_RDWR);
+	queue_bt_to_main 			= init_queue("/bt_to_main1", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_mapping 		= init_queue("/main_to_mapping1", O_CREAT | O_RDWR);
 
 	mqd_t bt_queues[] = {queue_main_to_bt, queue_bt_to_main};
 	mqd_t movement_queues[] = {queue_main_to_move, queue_move_to_main};
@@ -167,8 +167,8 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-	state = STATE_RUNNING;	
+	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+	state = STATE_SCANNING;	
 
 	uint16_t command;
 	int16_t value;
