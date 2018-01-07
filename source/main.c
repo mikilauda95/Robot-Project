@@ -125,9 +125,10 @@ void event_handler(uint16_t command, int16_t value) {
 void  INThandler() {
 	printf("Caught ctrl+c, sending stop message to movement_thread\n");
 	send_message(queue_main_to_move, MESSAGE_STOP, 0);
-	// Let the movement thread have some time to stop motors
-	//Sleep(1000);
 	pthread_cancel(sensors_thread);
+
+	// Let the movement thread have some time to stop motors
+	Sleep(500);
 	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
 	pthread_cancel(mapping_thread);
@@ -166,8 +167,8 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-	state = STATE_RUNNING;	
+	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+	state = STATE_SCANNING;	
 
 	uint16_t command;
 	int16_t value;

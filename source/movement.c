@@ -12,6 +12,7 @@
 #define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
+#define SCAN_SPEED 100
 #define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
@@ -49,7 +50,6 @@ void update_position() {
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180); // TODO should be +=. But for that the gyro need to increase anti clockwise
 	coord.y += distance * sin(heading*M_PI/180); 
-	printf("X: %f Y: %f \n", coord.x, coord.y);
 }
 
 void *position_sender(void* queues) {
@@ -108,15 +108,15 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 
-void turn_degrees(float angle) {
+void turn_degrees(float angle, int speed) {
 	// Base the turn speed on the distance
-	int turn_speed = (angle>10||angle<-10)?ANG_SPEED:100;
+	int turn_speed = (angle>10||angle<-10)?speed:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
 	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	Sleep(10);
+	Sleep(30);
 	
 	int spd;
 	get_tacho_speed(motor[L], &spd);
@@ -195,7 +195,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(150);
-				turn_degrees(value);
+				turn_degrees(value, ANG_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);
@@ -210,6 +210,11 @@ void *movement_start(void* queues) {
 			
 			case MESSAGE_STOP:
 				stop();
+			break;
+
+			case MESSAGE_SCAN:
+				turn_degrees(360, SCAN_SPEED);
+				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;
 			case MESSAGE_HEADING:
 				heading = value;

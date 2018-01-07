@@ -15,7 +15,7 @@
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
 
-char map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = 40;
 int robot_y = 10;
 int16_t data_pair[2];
@@ -34,27 +34,25 @@ void printMap(){
 
 void updateMap(float ang, int dist){
     int x, y;
+    y = (dist * sin(ang/180 * M_PI))/50;
+    x = (dist * cos(ang/180 * M_PI))/50;
+    if (robot_x + x < 0 || robot_x + x >= MAP_SIZE_X || robot_y + y < 0 || robot_y + y >= MAP_SIZE_Y) {
+        //printf("Mapping: Got positions outside of map!\n");
+        return;
+    } else {
+
+    }
     for (int i = 0; i < dist; i+=50) {
-       y = (i * sin(ang/180 * M_PI))/50;
-       x = (i * cos(ang/180 * M_PI))/50;
-        if (x + robot_x < 0 || y + robot_y < 0 ) {
-            //printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
-        } else {
-            if (y + robot_y < MAP_SIZE_Y && x + robot_x < MAP_SIZE_X){
-                if (map[y + robot_y][x + robot_x] == UNMAPPED) {
-                    map[y + robot_y][x + robot_x] = EMPTY;
-                }
-            }
+        y = (i * sin(ang/180 * M_PI))/50;
+        x = (i * cos(ang/180 * M_PI))/50;
+        if (map[y + robot_y][x + robot_x] == UNMAPPED) {
+            map[y + robot_y][x + robot_x] = EMPTY;
         }
     }
-    x = ((dist * cos(ang/180 * M_PI) ) / 50);
-    y = ((dist * sin(ang/180 * M_PI) ) / 50);
-    if (x + robot_x < 0 || y + robot_y < 0 ) {
-       // printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
-    } else if (y + robot_y < MAP_SIZE_Y && x + robot_x < MAP_SIZE_X){
-        map[y + robot_y][x + robot_x] = OBSTACLE;
-    }
-     map[robot_y][robot_x] = 7;
+    x = (dist * cos(ang/180 * M_PI)) / 50;
+    y = (dist * sin(ang/180 * M_PI)) / 50;
+    map[y + robot_y][x + robot_x] = OBSTACLE;
+    map[robot_y][robot_x] = 7;
 }
 
 void messageHandler(uint16_t command, int16_t value) {
