@@ -52,6 +52,7 @@ void event_handler(uint16_t command, int16_t value) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
 			//send_message(queue_main_to_bt, command, value);
+			send_message(queue_main_to_mapping, command, value);
 			break;
 		case MESSAGE_ANGLE:
 			current_heading = value;
