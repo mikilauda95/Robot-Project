@@ -82,7 +82,7 @@ void event_handler(uint16_t command, int16_t value) {
 		
 		case STATE_RUNNING:
 			if (command == MESSAGE_SONAR) {
-				if (value < 150) {
+				if (value < 200) {
 					int turn;
 					if (rand()%2 >=1) {
 						turn = -90;
