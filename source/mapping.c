@@ -84,7 +84,6 @@ void messageHandler(uint16_t command, int16_t value) {
             data_pair[1] = value;
             break;
         case MESSAGE_PRINT_MAP:
-            printf("GOT print message \n");
             printMap();
             break;
     }

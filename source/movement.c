@@ -8,8 +8,8 @@
 #include "ev3_tacho.h"
 #include "messages.h"
 
-#define LEFT_MOTOR_PORT 65
-#define RIGHT_MOTOR_PORT 68
+#define LEFT_MOTOR_PORT 66
+#define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 100
