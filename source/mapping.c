@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
-#include "ev3.h"
-#include "ev3_sensor.h"
 
 #include "messages.h"
 
@@ -14,14 +12,15 @@
 #define VIRTUAL_WALL 4
 #define WALL 5
 
-#define ANGLE_INDEX 0
-#define DISTANCE_INDEX 1
-#define Sleep(msec) usleep((msec)*1000)
+#define MAP_SIZE_X 80
+#define MAP_SIZE_Y 80
 
-char map[80][80] = {UNMAPPED};
+char map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = 40;
 int robot_y = 10;
 int16_t data_pair[2];
+int16_t pos_pair[2] = {-1, -1};
+
 
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
@@ -41,25 +40,33 @@ void updateMap(float ang, int dist){
         if (x + robot_x < 0 || y + robot_y < 0 ) {
             //printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
         } else {
-            map[y + robot_y][x + robot_x] = EMPTY;
+            if (y + robot_y >= 0 && y + robot_y < MAP_SIZE_Y && x + robot_x >= 0 && x + robot_x < MAP_SIZE_X){
+                map[y + robot_y][x + robot_x] = EMPTY;
+            }
         }
     }
     x = ((dist * cos(ang/180 * M_PI) ) / 50);
     y = ((dist * sin(ang/180 * M_PI) ) / 50);
     if (x + robot_x < 0 || y + robot_y < 0 ) {
        // printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
-    } else {
+    } else if (y + robot_y >= 0 && y + robot_y < MAP_SIZE_Y && x + robot_x >= 0 && x + robot_x < MAP_SIZE_X){
         map[y + robot_y][x + robot_x] = OBSTACLE;
     }
+     map[robot_y][robot_x] = 7;
 }
 
 void messageHandler(uint16_t command, int16_t value) {
     switch (command) {
         case MESSAGE_POS_X:
-            robot_x = value;
-            break;
         case MESSAGE_POS_Y:
-            robot_y = value;
+            // These lines are to make sure that we have update both positions at the same time.
+            pos_pair[command==MESSAGE_POS_X?0:1] = value;
+            if (pos_pair[0] != -1 && pos_pair[1] != -1) {
+                robot_x = pos_pair[0];
+                robot_y = pos_pair[1];
+                pos_pair[0] = -1;
+                pos_pair[1] = -1;
+            }
             break;
         case MESSAGE_ANGLE:
             if (data_pair[0] != -1) {
@@ -85,16 +92,6 @@ void messageHandler(uint16_t command, int16_t value) {
 }
 
 void *mapping_start(void* queues){
-    uint8_t sonar_sn;
-    uint8_t compass_sn;
-
-    float compass_value;
-    float sonar_value;
-    
-    ev3_sensor_init();
-    ev3_search_sensor(LEGO_EV3_US, &sonar_sn, 0);
-    ev3_search_sensor(HT_NXT_COMPASS, &compass_sn, 0);
-
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_from_main = tmp[0];
 
@@ -102,13 +99,7 @@ void *mapping_start(void* queues){
     int16_t value;
 
     while(1) {
-        get_sensor_value0(sonar_sn, &sonar_value);
-        get_sensor_value0(compass_sn, &compass_value);
-        updateMap(compass_value, (int16_t) sonar_value);
-        Sleep(10);
-        if (compass_value >350) {
-            printMap();
-        }
-        //messageHandler(command, value);
+        get_message(queue_from_main, &command, &value);
+        messageHandler(command, value);
     }
 }
