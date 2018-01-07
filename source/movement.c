@@ -48,7 +48,7 @@ void update_position() {
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
-	coord.x += distance * cos(heading*M_PI/180); // TODO should be +=. But for that the gyro need to increase anti clockwise
+	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180); 
 }
 
