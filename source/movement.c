@@ -12,7 +12,7 @@
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
-#define SCAN_SPEED 100
+#define SCAN_SPEED 50
 #define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7

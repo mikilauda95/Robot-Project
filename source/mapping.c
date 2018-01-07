@@ -14,7 +14,7 @@
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
-#define MAX_DIST 800 // Max distance in mm
+#define MAX_DIST 500 // Max distance in mm
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = 40;
