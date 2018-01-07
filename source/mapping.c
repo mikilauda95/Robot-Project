@@ -34,14 +34,16 @@ void printMap(){
 
 void updateMap(float ang, int dist){
     int x, y;
-    for (int i = 0; i < dist; i+=5) {
+    for (int i = 0; i < dist; i+=50) {
        y = (i * sin(ang/180 * M_PI))/50;
        x = (i * cos(ang/180 * M_PI))/50;
         if (x + robot_x < 0 || y + robot_y < 0 ) {
             //printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
         } else {
-            if (y + robot_y >= 0 && y + robot_y < MAP_SIZE_Y && x + robot_x >= 0 && x + robot_x < MAP_SIZE_X){
-                map[y + robot_y][x + robot_x] = EMPTY;
+            if (y + robot_y < MAP_SIZE_Y && x + robot_x < MAP_SIZE_X){
+                if (map[y + robot_y][x + robot_x] == UNMAPPED) {
+                    map[y + robot_y][x + robot_x] = EMPTY;
+                }
             }
         }
     }
@@ -49,7 +51,7 @@ void updateMap(float ang, int dist){
     y = ((dist * sin(ang/180 * M_PI) ) / 50);
     if (x + robot_x < 0 || y + robot_y < 0 ) {
        // printf("Robot claims to have found clear path at x = %d , y =  %d \n", x, y);
-    } else if (y + robot_y >= 0 && y + robot_y < MAP_SIZE_Y && x + robot_x >= 0 && x + robot_x < MAP_SIZE_X){
+    } else if (y + robot_y < MAP_SIZE_Y && x + robot_x < MAP_SIZE_X){
         map[y + robot_y][x + robot_x] = OBSTACLE;
     }
      map[robot_y][robot_x] = 7;
