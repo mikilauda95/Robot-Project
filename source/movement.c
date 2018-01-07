@@ -8,7 +8,7 @@
 #include "ev3_tacho.h"
 #include "messages.h"
 
-#define LEFT_MOTOR_PORT 66
+#define LEFT_MOTOR_PORT 65
 #define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 500 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
@@ -62,7 +62,7 @@ void *position_sender(void* queues) {
 		uint16_t y = (int16_t) (coord.y + 0.5);
 		send_message(movement_queue_to_main, MESSAGE_POS_X, x);
 		send_message(movement_queue_to_main, MESSAGE_POS_Y, y);
-		Sleep(1000);
+		Sleep(100);
 	}
 
 }
@@ -80,7 +80,7 @@ int movement_init(){
 
 	set_tacho_speed_sp(motor[L], RUN_SPEED );
 	set_tacho_speed_sp(motor[R], RUN_SPEED );
-
+	printf("X: %f, Y: %f \n", coord.x, coord.y);
 	coord.x = 40.0;
 	coord.y = 10.0;
 
@@ -108,8 +108,8 @@ void turn_degrees(float angle) {
 	int turn_speed = angle>5&&angle<-5?ANG_SPEED:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
-	set_tacho_position_sp( motor[L], angle * DEGREE_TO_LIN );
-	set_tacho_position_sp( motor[R], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
 	Sleep(50);
 	

@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <math.h>
+
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
@@ -21,7 +23,7 @@ mqd_t queue_main_to_mapping;
 pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = 90; // Start facing forward
 int current_heading;
-int state = STATE_SCANNING;
+int state;
 
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
@@ -71,7 +73,7 @@ void event_handler(uint16_t command, int16_t value) {
 					} else if (delta > 180) {
 						delta -=360;
 					}
-					//printf("Turn not complete. Delta: %d, curr: %d, target: %d \n", delta, current_heading, target_heading);
+					printf("Turn not complete. Delta: %d, curr: %d, target: %d \n", delta, current_heading, target_heading);
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 				} else {
 					printf("Turn complete! \n");
@@ -84,12 +86,19 @@ void event_handler(uint16_t command, int16_t value) {
 		
 		case STATE_RUNNING:
 			if (command == MESSAGE_SONAR) {
-				if (value < 300) {
-					
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, -90);
-					target_heading -= 90;
+				if (value < 150) {
+					int turn;
+					if (rand()%2 >=1) {
+						turn = -90;
+					} else {
+						turn = 90;
+					}
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, turn);
+					target_heading += turn;
+					target_heading %= 360;
 					if (target_heading < 0){target_heading+=360;}
 					state = STATE_TURNING;
+					return;
 				}
 			} 
 		break;
@@ -119,12 +128,14 @@ void event_handler(uint16_t command, int16_t value) {
 void INThandler() {
 	printf("Caught ctrl+c, sending stop message to movement_thread\n");
 	send_message(queue_main_to_move, MESSAGE_STOP, 0);
-	// Let the movement thread have some time to stop motors
-	Sleep(500);
 	pthread_cancel(sensors_thread);
-	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
 	pthread_cancel(mapping_thread);
+
+	// Let the movement thread have some time to stop motors
+	Sleep(500);
+	pthread_cancel(movement_thread);
+	
 	
 	exit(0);
 }
@@ -151,21 +162,21 @@ int main() {
 	mqd_t sensor_queues[] = {queue_sensors_to_main};
 	mqd_t mapping_queues[] = {queue_main_to_mapping};
 
-	//pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
-	//pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
+	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
+	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
+	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);	
+	state = STATE_RUNNING;
 
-	//send_message(queue_main_to_move, MESSAGE_SCAN, 0);	
 
 	uint16_t command;
 	int16_t value;
 	for(;;){
-		
-		//wait_for_queues(&command, &value);
-		//event_handler(command, value);
+		wait_for_queues(&command, &value);
+		event_handler(command, value);
 		
 	}
 }
