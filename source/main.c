@@ -8,8 +8,8 @@
 #include "movement.h"
 #include "messages.h"
 #include "sensors.h"
-#include "mapping.h"
 #include "bt_client.h"
+#include "mapping.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 #define STATE_TURNING 1
@@ -44,17 +44,16 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 			return;
 		}
 	}
-
 }
 
-
 void event_handler(uint16_t command, int16_t value) {
+	static int state = STATE_RUNNING;
+	
 	// handle events not depending on current state	
 	switch(command) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
 			//send_message(queue_main_to_bt, command, value);
-			send_message(queue_main_to_mapping, command, value);
 			break;
 		case MESSAGE_ANGLE:
 			current_heading = value;
@@ -64,10 +63,9 @@ void event_handler(uint16_t command, int16_t value) {
 	// handle events depending on current state
 	switch (state) {
 		case STATE_TURNING:
-
 			if (command == MESSAGE_TURN_COMPLETE) {
 				if (target_heading != current_heading) {
-					int delta = (target_heading - current_heading); // TODO consider moving this stuff to movement module, and let main operate with heading over 360 and under 0
+					int delta = (target_heading - current_heading);
 					if (delta < -180) {
 						delta +=360;
 					} else if (delta > 180) {
@@ -77,6 +75,7 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 				} else {
 					printf("Turn complete! \n");
+					send_message(queue_main_to_move, MESSAGE_HEADING, current_heading);
 					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
 					state = STATE_RUNNING;
 				}
@@ -101,7 +100,6 @@ void event_handler(uint16_t command, int16_t value) {
 					return;
 				}
 			} 
-		break;
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
@@ -119,23 +117,21 @@ void event_handler(uint16_t command, int16_t value) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
 			}
-
 		break;
 	}
 }
 
 // handler for ctrl+c
-void INThandler() {
+void  INThandler() {
 	printf("Caught ctrl+c, sending stop message to movement_thread\n");
 	send_message(queue_main_to_move, MESSAGE_STOP, 0);
+	// Let the movement thread have some time to stop motors
+	//Sleep(1000);
 	pthread_cancel(sensors_thread);
+	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
 	pthread_cancel(mapping_thread);
 
-	// Let the movement thread have some time to stop motors
-	Sleep(500);
-	pthread_cancel(movement_thread);
-	
 	
 	exit(0);
 }
@@ -150,12 +146,12 @@ int main() {
 	bt_wait_for_start();
 	*/
 	
-	queue_sensors_to_main 		= init_queue("/sensors2", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_move 			= init_queue("/movement_from_main2", O_CREAT | O_RDWR);
-	queue_move_to_main 			= init_queue("/movement_to_main2", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_bt 			= init_queue("/bt_from_main2", O_CREAT | O_RDWR);
-	queue_bt_to_main 			= init_queue("/bt_to_main2", O_CREAT | O_RDWR | O_NONBLOCK);
-	queue_main_to_mapping 		= init_queue("/main_to_mapping2", O_CREAT | O_RDWR);
+	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
+	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_bt 			= init_queue("/bt_from_main", O_CREAT | O_RDWR);
+	queue_bt_to_main 			= init_queue("/bt_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
+	queue_main_to_mapping 		= init_queue("/main_to_mapping6", O_CREAT | O_RDWR);
 
 	mqd_t bt_queues[] = {queue_main_to_bt, queue_bt_to_main};
 	mqd_t movement_queues[] = {queue_main_to_move, queue_move_to_main};
@@ -165,16 +161,18 @@ int main() {
 	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
+
 	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);	
-	state = STATE_RUNNING;
 
+	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+	state = STATE_RUNNING;	
 
 	uint16_t command;
 	int16_t value;
 	for(;;){
+		
 		wait_for_queues(&command, &value);
 		event_handler(command, value);
 		
