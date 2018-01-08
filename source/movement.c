@@ -157,7 +157,7 @@ void turn_degrees(float angle, int speed) {
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
 	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	Sleep(30);
+	Sleep(100);
 	
 	int spd;
 	get_tacho_speed(motor[L], &spd);

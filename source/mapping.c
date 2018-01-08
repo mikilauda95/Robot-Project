@@ -15,16 +15,18 @@
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
 #define MAX_DIST 500 // Max distance in mm
-#define TILE_SIZE 50.0 //Size of each tile in mm. With decimal to ensure float division
+#define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
+#define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+
 int robot_x = 2000; // robot start position in mm
 int robot_y = 1000;
-int16_t data_pair[2];
+
+int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
 
 FILE * f;
-
 
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
@@ -39,8 +41,8 @@ void printMap(){
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
-        y = (int)(((i * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)(((i * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map. No need to try the other values
@@ -50,8 +52,8 @@ void update_map(float ang, int dist){
         }
     }
     if (dist < MAX_DIST) {
-        y = (int)(((dist * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)(((dist * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
@@ -75,25 +77,17 @@ void message_handler(uint16_t command, int16_t value) {
             }
             break;
         case MESSAGE_ANGLE:
-            if (data_pair[0] != -1) {
-            printf("MAPPING: Two equal message types (%d) in a row. This should not happen!\n", command);
-            }
-            data_pair[0] = value;
-            break;
         case MESSAGE_SONAR:
-            if (data_pair[1] != -1) {
-            printf("MAPPING: Two equal message types (%d) in a row. This should not happen!\n", command);
+            data_pair[command==MESSAGE_ANGLE?0:1] = value;
+            if (data_pair[0] != -1 && data_pair[1] != -1) {
+                update_map((float)data_pair[0], data_pair[1]);
+                data_pair[0] = -1;
+                data_pair[1] = -1;
             }
-            data_pair[1] = value;
             break;
         case MESSAGE_PRINT_MAP:
             printMap();
             break;
-    }
-    if (data_pair[0] != -1 && data_pair[1] != -1) {
-        update_map((float)data_pair[0], data_pair[1]);
-        data_pair[0] = -1;
-        data_pair[1] = -1;
     }
 }
 
