@@ -45,7 +45,7 @@ void update_map(float ang, int dist){
             return;
         } else {
             if (map[y][x] == UNMAPPED) {
-                map[y]][y] = EMPTY;
+                map[y][y] = EMPTY;
             }
         }
     }
