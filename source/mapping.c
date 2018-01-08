@@ -15,10 +15,11 @@
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
 #define MAX_DIST 500 // Max distance in mm
+#define TILE_SIZE 50.0 //Size of each tile in mm. With decimal to ensure float division
 
-int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
-int robot_x = 40;
-int robot_y = 10;
+uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+int robot_x = 400/TILE_SIZE;
+int robot_y = 100/TILE_SIZE;
 int16_t data_pair[2];
 int16_t pos_pair[2] = {-1, -1};
 
@@ -33,32 +34,30 @@ void printMap(){
     }
 }
 
-void updateMap(float ang, int dist){
-    int x, y;
-    y = (dist * sin(ang/180 * M_PI))/50;
-    x = (dist * cos(ang/180 * M_PI))/50;
-    if (robot_x + x < 0 || robot_x + x >= MAP_SIZE_X || robot_y + y < 0 || robot_y + y >= MAP_SIZE_Y) {
-        //printf("Mapping: Got positions outside of map!\n");
-        return;
-    } else {
-
-    }
+void update_map(float ang, int dist){
+    int x, y;   
     for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=50) {
-        y = (i * sin(ang/180 * M_PI))/50;
-        x = (i * cos(ang/180 * M_PI))/50;
-        if (map[y + robot_y][x + robot_x] == UNMAPPED) {
-            map[y + robot_y][x + robot_x] = EMPTY;
+        y = (int)(((i * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)(((i * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        if (robot_x + x < 0 || robot_x + x >= MAP_SIZE_X || robot_y + y < 0 || robot_y + y >= MAP_SIZE_Y) {
+            //printf("Mapping: Got positions outside of map!\n");
+            // Return if a value is out of the map
+            return;
+        } else {
+            if (map[y][x] == UNMAPPED) {
+                map[y]][y] = EMPTY;
+            }
         }
     }
     if (dist < MAX_DIST) {
-        x = (dist * cos(ang/180 * M_PI)) / 50;
-        y = (dist * sin(ang/180 * M_PI)) / 50;
-        map[y + robot_y][x + robot_x] = OBSTACLE;
+        y = (int)(((dist * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)(((dist * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        map[y][x] = OBSTACLE;
     }
-    map[robot_y][robot_x] = 7;
+    map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = 7;
 }
 
-void messageHandler(uint16_t command, int16_t value) {
+void message_handler(uint16_t command, int16_t value) {
     switch (command) {
         case MESSAGE_POS_X:
         case MESSAGE_POS_Y:
@@ -88,7 +87,7 @@ void messageHandler(uint16_t command, int16_t value) {
             break;
     }
     if (data_pair[0] != -1 && data_pair[1] != -1) {
-        updateMap((float)data_pair[0], data_pair[1]);
+        update_map((float)data_pair[0], data_pair[1]);
         data_pair[0] = -1;
         data_pair[1] = -1;
     }
@@ -103,6 +102,6 @@ void *mapping_start(void* queues){
 
     while(1) {
         get_message(queue_from_main, &command, &value);
-        messageHandler(command, value);
+        message_handler(command, value);
     }
 }
