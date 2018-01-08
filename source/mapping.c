@@ -102,7 +102,6 @@ void *mapping_start(void* queues){
 	mqd_t queue_from_main = tmp[0];
     f = fopen("objects.txt", "w");
 
-
     uint16_t command;
     int16_t value;
 

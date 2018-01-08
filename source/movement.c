@@ -227,13 +227,12 @@ void *movement_start(void* queues) {
 	pthread_t sonar_sweeper_thread;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
-
 	while(1) {
 	   
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
-
+		printf("Movement: Got message %d\n", command);
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();

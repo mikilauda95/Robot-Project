@@ -129,24 +129,29 @@ void event_handler(uint16_t command, int16_t value) {
 void  INThandler() {
 	printf("Caught ctrl+c, sending stop message to movement_thread\n");
 	send_message(queue_main_to_move, MESSAGE_STOP, 0);
+	mq_close(queue_sensors_to_main);
+
 	pthread_cancel(sensors_thread);
 
 	// Let the movement thread have some time to stop motors
 	Sleep(500);
-	pthread_cancel(movement_thread);
-	pthread_cancel(bluetooth_thread);
-	pthread_cancel(mapping_thread);
-
-	// Unlink the queues, this should help making sure we have no messages left from the previous run
-	/*
+	mq_close(queue_main_to_bt);
+	mq_close(queue_bt_to_main);
+	mq_close(queue_main_to_move);
+	mq_close(queue_move_to_main);
+	mq_close(queue_main_to_mapping);
+	
 	mq_unlink("/sensors");
 	mq_unlink("/movement_from_main");
 	mq_unlink("/movement_to_main");
 	mq_unlink("/bt_from_main");
 	mq_unlink("/bt_to_main");
 	mq_unlink("/main_to_mapping");
-	*/
 	
+	pthread_cancel(movement_thread);
+	pthread_cancel(bluetooth_thread);
+	pthread_cancel(mapping_thread);
+	// Unlink the queues, this should help making sure we have no messages left from the previous run
 	exit(0);
 }
 
