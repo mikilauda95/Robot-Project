@@ -17,6 +17,11 @@
 #define MESSAGE_POS_X 20
 #define MESSAGE_POS_Y 21
 
+#define MESSAGE_MAP_START 30
+#define MESSAGE_MAP_X_DIM 31
+#define MESSAGE_MAP_Y_DIM 32
+#define MESSAGE_MAP_POINT 33
+
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, int16_t value);
 int get_message(mqd_t mq, uint16_t *command, int16_t *value);
