@@ -12,22 +12,22 @@
 #define VIRTUAL_WALL 4
 #define WALL 5
 
-#define MAP_SIZE_X 400
-#define MAP_SIZE_Y 400
-#define MAX_DIST 500 // Max distance in mm
+#define MAP_SIZE_X 100
+#define MAP_SIZE_Y 100
+#define MAX_DIST 400 // Max distance in mm
 #define TILE_SIZE 10.0 //Size of each tile in mm. With decimal to ensure float division
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
-int robot_x = 2000; // robot start position in mm
-int robot_y = 1000;
+int robot_x = 500; // robot start position in mm
+int robot_y = 500;
 int16_t data_pair[2];
 int16_t pos_pair[2] = {-1, -1};
 
 
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-    for (int i = 79; i>=0; i--) {
-        for (int j=0; j<80; j++){
+    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+        for (int j=0; j<MAP_SIZE_X; j++){
             printf("%d", map[i][j]);
         }
         printf("\n");
