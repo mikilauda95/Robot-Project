@@ -12,10 +12,10 @@
 #define VIRTUAL_WALL 4
 #define WALL 5
 
-#define MAP_SIZE_X 80
-#define MAP_SIZE_Y 80
+#define MAP_SIZE_X 400
+#define MAP_SIZE_Y 400
 #define MAX_DIST 500 // Max distance in mm
-#define TILE_SIZE 50.0 //Size of each tile in mm. With decimal to ensure float division
+#define TILE_SIZE 10.0 //Size of each tile in mm. With decimal to ensure float division
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = 2000; // robot start position in mm
@@ -36,7 +36,7 @@ void printMap(){
 
 void update_map(float ang, int dist){
     int x, y;   
-    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=50) {
+    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
         y = (int)(((i * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)(((i * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
