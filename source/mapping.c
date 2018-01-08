@@ -11,10 +11,11 @@
 #define MOVABLE 3
 #define VIRTUAL_WALL 4
 #define WALL 5
+#define ROBOT_POSITION 7
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
-#define MAX_DIST 500 // Max distance in mm
+#define MAX_DIST 1000 // Max distance in mm
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
@@ -60,7 +61,7 @@ void update_map(float ang, int dist){
         map[y][x] = OBSTACLE;
         fprintf(f, "%d %d\n", x, y);
     }
-    map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = 7;
+    map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = ROBOT_POSITION;
 }
 
 void message_handler(uint16_t command, int16_t value) {
@@ -70,8 +71,8 @@ void message_handler(uint16_t command, int16_t value) {
             // These lines are to make sure that we have update both positions at the same time.
             pos_pair[command==MESSAGE_POS_X?0:1] = value;
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
-                robot_x = pos_pair[0];
-                robot_y = pos_pair[1];
+                robot_x = 10 * pos_pair[0];
+                robot_y = 10 * pos_pair[1];
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
             }

@@ -150,7 +150,7 @@ void forward(){
 }
 
 void turn_degrees(float angle, int speed) {
-	// Base the turn speed on the distance
+	// Turn more slowly if the angle in small
 	int turn_speed = (angle>10||angle<-10)?speed:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
@@ -234,6 +234,7 @@ void *movement_start(void* queues) {
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
+		printf("MOVEMENT: got message %d\n", command);
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
