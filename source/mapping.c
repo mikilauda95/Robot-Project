@@ -23,11 +23,13 @@ int robot_y = 1000;
 int16_t data_pair[2];
 int16_t pos_pair[2] = {-1, -1};
 
+FILE * f;
+
 
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-    for (int i = 79; i>=0; i--) {
-        for (int j=0; j<80; j++){
+    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+        for (int j=0; j<MAP_SIZE_X; j++){
             printf("%d", map[i][j]);
         }
         printf("\n");
@@ -36,7 +38,7 @@ void printMap(){
 
 void update_map(float ang, int dist){
     int x, y;   
-    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=50) {
+    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
         y = (int)(((i * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)(((i * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
@@ -54,6 +56,7 @@ void update_map(float ang, int dist){
             return;
         }
         map[y][x] = OBSTACLE;
+        fprintf(f, "%d %d\n", x, y);
     }
     map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = 7;
 }
@@ -97,6 +100,8 @@ void message_handler(uint16_t command, int16_t value) {
 void *mapping_start(void* queues){
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_from_main = tmp[0];
+    f = fopen("objects.txt", "w");
+
 
     uint16_t command;
     int16_t value;
