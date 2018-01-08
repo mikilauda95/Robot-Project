@@ -18,8 +18,8 @@
 #define TILE_SIZE 50.0 //Size of each tile in mm. With decimal to ensure float division
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
-int robot_x = 400/TILE_SIZE;
-int robot_y = 100/TILE_SIZE;
+int robot_x = 2000; // robot start position in mm
+int robot_y = 1000;
 int16_t data_pair[2];
 int16_t pos_pair[2] = {-1, -1};
 
@@ -39,19 +39,20 @@ void update_map(float ang, int dist){
     for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=50) {
         y = (int)(((i * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)(((i * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
-        if (robot_x + x < 0 || robot_x + x >= MAP_SIZE_X || robot_y + y < 0 || robot_y + y >= MAP_SIZE_Y) {
-            //printf("Mapping: Got positions outside of map!\n");
-            // Return if a value is out of the map
+
+        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
+            // Return if a value is out of the map. No need to try the other values
             return;
-        } else {
-            if (map[y][x] == UNMAPPED) {
-                map[y][y] = EMPTY;
-            }
+        } else if (map[y][x] == UNMAPPED) {
+            map[y][x] = EMPTY;
         }
     }
     if (dist < MAX_DIST) {
         y = (int)(((dist * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)(((dist * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
+            return;
+        }
         map[y][x] = OBSTACLE;
     }
     map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = 7;

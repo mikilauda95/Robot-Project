@@ -86,17 +86,14 @@ void *sonar_sweeper(void* what) {
 
 	for (;;) {
 
-		printf("sonar sweeper waiting for flag\n");		
 		if (do_sweep_sonar) {
 			set_tacho_position_sp( sweep_motor, sweep_amplitude);
 			set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
 			sweep_amplitude *= -1;
-			printf("did one sweep\n");
 			Sleep(sweep_time);
 			is_zeroed = false;
 		} else {
 			if (!is_zeroed) {
-				printf("zeroing \n");
 				set_tacho_position_sp( sweep_motor, 0);
 				set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
 				is_zeroed = true;
@@ -157,8 +154,8 @@ void turn_degrees(float angle, int speed) {
 	int turn_speed = (angle>10||angle<-10)?speed:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
-	set_tacho_position_sp( motor[L], angle * DEGREE_TO_LIN );
-	set_tacho_position_sp( motor[R], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
 	Sleep(30);
 	
