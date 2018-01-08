@@ -8,9 +8,10 @@
 #include "ev3_tacho.h"
 #include "messages.h"
 
+#define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
-#define RUN_SPEED 500 // Max is 1050
+#define RUN_SPEED 350 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 50
 #define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
@@ -23,6 +24,7 @@
 
 enum name {L, R};
 uint8_t motor[2];
+uint8_t sweep_motor;
 
 struct coord {
 	float x;
@@ -34,6 +36,8 @@ int heading = 90;
 
 // true when robot is moving straight
 bool do_track_position = false;
+bool do_sweep_sonar = false;
+
 int prev_l_pos = 0;
 int prev_r_pos = 0;
 FILE *f;
@@ -71,20 +75,57 @@ void *position_sender(void* queues) {
 
 }
 
+
+void *sonar_sweeper(void* what) {
+
+	set_tacho_position(sweep_motor, 0);
+
+	int sweep_time = 400;
+	int sweep_amplitude = 55;
+	bool is_zeroed = true;
+
+	for (;;) {
+
+		printf("sonar sweeper waiting for flag\n");		
+		if (do_sweep_sonar) {
+			set_tacho_position_sp( sweep_motor, sweep_amplitude);
+			set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
+			sweep_amplitude *= -1;
+			printf("did one sweep\n");
+			Sleep(sweep_time);
+			is_zeroed = false;
+		} else {
+			if (!is_zeroed) {
+				printf("zeroing \n");
+				set_tacho_position_sp( sweep_motor, 0);
+				set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
+				is_zeroed = true;
+			}
+			Sleep(500);
+		}
+
+	}
+
+}
+
 int movement_init(){
 	srand(time(NULL));
 	ev3_tacho_init();
 
 	ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &motor[L], 0 );
 	ev3_search_tacho_plugged_in(RIGHT_MOTOR_PORT, 0, &motor[R], 0 );
+	ev3_search_tacho_plugged_in(SWEEP_MOTOR_PORT, 0, &sweep_motor, 0 );
 
 	/* Decide how the motors should behave when stopping.
 	We have the alternatives COAST, BRAKE, and HOLD. They result in harder/softer breaking */
 	set_tacho_stop_action_inx( motor[L], TACHO_BRAKE );
 	set_tacho_stop_action_inx( motor[R], TACHO_BRAKE );
+	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 
 	set_tacho_speed_sp(motor[L], RUN_SPEED );
 	set_tacho_speed_sp(motor[R], RUN_SPEED );
+	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
+	
 	f = fopen("positions.txt", "w");
 
 	coord.x = 40.0;
@@ -94,14 +135,17 @@ int movement_init(){
 }
 
 void stop(){
+	printf("stop\n");
 	update_position(); // make sure to update the position when we stop. 
 	do_track_position = false;
+	do_sweep_sonar = false;
 	set_tacho_command_inx(motor[L], TACHO_STOP);
 	set_tacho_command_inx(motor[R], TACHO_STOP);
 }
 
 void forward(){
 	do_track_position = true;
+	do_sweep_sonar = true;
     set_tacho_speed_sp(motor[L], RUN_SPEED );
     set_tacho_speed_sp(motor[R], RUN_SPEED );
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
@@ -113,8 +157,8 @@ void turn_degrees(float angle, int speed) {
 	int turn_speed = (angle>10||angle<-10)?speed:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
-	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
-	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[L], angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[R], -angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
 	Sleep(30);
 	
@@ -183,7 +227,9 @@ void *movement_start(void* queues) {
 	set_tacho_position(motor[R], 0);
 
 	pthread_t position_sender_thread;
+	pthread_t sonar_sweeper_thread;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
+	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
 
 	while(1) {
 	   
