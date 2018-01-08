@@ -157,12 +157,14 @@ void turn_degrees(float angle, int speed) {
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
 	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	Sleep(100);
 	
-	int spd;
-	get_tacho_speed(motor[L], &spd);
-	// Block until done turning
-	
+	int spd = 0;
+	// First we wait until the motor starts spinning
+	while (spd  == 0) {
+		Sleep(10);
+		get_tacho_speed(motor[L], &spd);
+	}
+	// Then we block until done turning	
 	while ( spd != 0 ) { 
 		get_tacho_speed(motor[L], &spd);
 		Sleep(10);
@@ -232,7 +234,6 @@ void *movement_start(void* queues) {
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
-		printf("Movement: Got message %d\n", command);
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
