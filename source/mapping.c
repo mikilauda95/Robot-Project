@@ -27,8 +27,7 @@ int robot_y = 1000;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
-int16_t tgt_data_pair[2] = {-1, -1};
-
+int16_t tgt_angle = -1;
 
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
@@ -42,6 +41,21 @@ void printMap(){
             printf("%d", map[i][j]);
         }
         printf("\n");
+    }
+}
+
+bool points_to_unmapped_tile(float ang) {
+    int x, y;   
+    for (int i = 0; i < MAX_DIST * 5; i += TILE_SIZE) {
+        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+
+        if (map[y][x] == UNMAPPED) {
+            return true;
+        } else if (map[y][x] != EMPTY) {
+            return false;
+        }
+
     }
 }
 
@@ -73,13 +87,11 @@ void message_handler(uint16_t command, int16_t value) {
     
     switch (command) {
         case MESSAGE_SCAN:
-        tgt_data_pair[0] = -1;
-        tgt_data_pair[1] = -1;
+            tgt_angle = -1;
         break;
 
         case MESSAGE_SCAN_COMPLETE:
-        send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, tgt_data_pair[0]);
-        send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, tgt_data_pair[1]);
+            send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, tgt_angle);
         break;
 
         case MESSAGE_POS_X:
@@ -102,11 +114,12 @@ void message_handler(uint16_t command, int16_t value) {
             if (data_pair[0] != -1 && data_pair[1] != -1) {
                 update_map((float)data_pair[0], data_pair[1]);
 
-                // Check if this ange-distance pair can be a new target for the robot
-                if (tgt_data_pair[0] == -1 && tgt_data_pair[1] == -1) {
-                    if (data_pair[1] >= MAX_DIST) {
-                        tgt_data_pair[0] = data_pair[0];
-                        tgt_data_pair[1] = data_pair[1];
+                // if we are missing target angle and are pointed towards an unmapped tile, set 
+                // current angle to target angle.
+                if (tgt_angle == -1) {
+                    if (points_to_unmapped_tile(data_pair[0])) {
+                        printf("target is here!\n");
+                        tgt_angle = data_pair[0];
                     }
                 }
 

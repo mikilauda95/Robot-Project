@@ -118,6 +118,7 @@ void event_handler(uint16_t command, int16_t value) {
 				case MESSAGE_TARGET_ANGLE:
 				{
 					int delta = (value - current_heading);
+					printf("got new target angle: %d => delta = %d\n", value, delta);
 					if (delta < -180) {
 						delta +=360;
 					} else if (delta > 180) {
