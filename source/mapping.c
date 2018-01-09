@@ -27,6 +27,11 @@ int robot_y = 1000;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
+int16_t tgt_data_pair[2] = {-1, -1};
+
+
+mqd_t queue_from_main;
+mqd_t queue_mapping_to_main;
 
 FILE * f;
 
@@ -68,8 +73,13 @@ void message_handler(uint16_t command, int16_t value) {
     
     switch (command) {
         case MESSAGE_SCAN:
+        tgt_data_pair[0] = -1;
+        tgt_data_pair[1] = -1;
         break;
+
         case MESSAGE_SCAN_COMPLETE:
+        send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, tgt_data_pair[0]);
+        send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, tgt_data_pair[1]);
         break;
 
         case MESSAGE_POS_X:
@@ -90,10 +100,20 @@ void message_handler(uint16_t command, int16_t value) {
             // These lines are to make sure that we update both angle and distance at the same time.
             data_pair[command==MESSAGE_ANGLE?0:1] = value;
             if (data_pair[0] != -1 && data_pair[1] != -1) {
-                update_map((float)data_pair[0], data_pair[1]);                
+                update_map((float)data_pair[0], data_pair[1]);
+
+                // Check if this ange-distance pair can be a new target for the robot
+                if (tgt_data_pair[0] == -1 && tgt_data_pair[1] == -1) {
+                    if (data_pair[1] >= MAX_DIST) {
+                        tgt_data_pair[0] = data_pair[0];
+                        tgt_data_pair[1] = data_pair[1];
+                    }
+                }
+
                 data_pair[0] = -1;
                 data_pair[1] = -1;
             }
+
         break;
 
         case MESSAGE_PRINT_MAP:
@@ -104,8 +124,8 @@ void message_handler(uint16_t command, int16_t value) {
 
 void *mapping_start(void* queues){
     mqd_t* tmp = (mqd_t*)queues;
-	mqd_t queue_from_main = tmp[0];
-    mqd_t queue_mapping_to_main = tmp[1];
+	queue_from_main = tmp[0];
+    queue_mapping_to_main = tmp[1];
     f = fopen("objects.txt", "w");
 
     uint16_t command;

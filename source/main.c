@@ -60,6 +60,10 @@ void event_handler(uint16_t command, int16_t value) {
 		case MESSAGE_ANGLE:
 			current_heading = value;
 			break;
+		case MESSAGE_TARGET_ANGLE:
+		case MESSAGE_TARGET_DISTANCE:
+			// todo: handle new targets here
+			break;
 	}
 
 	// handle events depending on current state
