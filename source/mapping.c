@@ -27,7 +27,6 @@ int robot_y = 1000;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
-int16_t tgt_angle = -1;
 
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
@@ -87,11 +86,26 @@ void message_handler(uint16_t command, int16_t value) {
     
     switch (command) {
         case MESSAGE_SCAN:
-            tgt_angle = -1;
         break;
 
-        case MESSAGE_SCAN_COMPLETE:
-            send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, tgt_angle);
+        case MESSAGE_SCAN_COMPLETE: {
+            int16_t target_angle = -1;
+            int16_t angle_increment = 30;
+
+            printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
+            for (int angle = 0; angle < 360; angle += angle_increment) {
+                if (points_to_unmapped_tile(angle)) {
+                    target_angle = angle;
+                    break;
+                }
+            }
+            if (target_angle == -1) {
+                printf("No suitable target angle found\n");
+            } else {
+                printf("Angle %d points to an unmaped tile!\n", target_angle);
+            }
+            send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
+        }
         break;
 
         case MESSAGE_POS_X:
@@ -113,15 +127,6 @@ void message_handler(uint16_t command, int16_t value) {
             data_pair[command==MESSAGE_ANGLE?0:1] = value;
             if (data_pair[0] != -1 && data_pair[1] != -1) {
                 update_map((float)data_pair[0], data_pair[1]);
-
-                // if we are missing target angle and are pointed towards an unmapped tile, set 
-                // current angle to target angle.
-                if (tgt_angle == -1) {
-                    if (points_to_unmapped_tile(data_pair[0])) {
-                        printf("target is here!\n");
-                        tgt_angle = data_pair[0];
-                    }
-                }
 
                 data_pair[0] = -1;
                 data_pair[1] = -1;
