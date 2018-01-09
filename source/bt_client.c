@@ -137,20 +137,10 @@ void* bt_client(void *queues){
 	uint16_t command;
 	int16_t value;
 	uint16_t pos_x, pos_y;
-	uint16_t map_x_dim = 10;
-	uint16_t map_y_dim = 20;
+	uint16_t map_x_dim;
+	uint16_t map_y_dim;
 	uint16_t map_current_x, map_current_y;
 	bool should_send_position = false;
-
-	printf("sending map...\n");
-	for(int x = 0; x < 20; x++) {
-		for(int y = 0; y < 20; y++) {
-			_send_mapdata(x, y, 255, 255, 255);
-			Sleep(50);
-		}
-	}
-	_send_mapdone();
-	printf("done sending map\n");
 
 	for(;;){
 		
@@ -164,10 +154,6 @@ void* bt_client(void *queues){
 				pos_y = value;
 				should_send_position = true;
 			break;
-			case MESSAGE_MAP_START:
-				map_current_x = 0;
-				map_current_y = 0;
-			break;
 			case MESSAGE_MAP_X_DIM:
 				map_x_dim = value;
 			break;
@@ -180,6 +166,11 @@ void* bt_client(void *queues){
 				if (map_current_x > map_x_dim - 1) {
 					map_current_x = 0;
 					map_current_y++;
+				}
+				if (map_current_y == map_y_dim - 1) {
+					_send_mapdone();
+					map_current_x = 0;
+					map_current_y = 0;
 				}
 			}
 			break;
