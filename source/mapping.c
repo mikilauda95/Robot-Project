@@ -100,7 +100,8 @@ void message_handler(uint16_t command, int16_t value) {
                 }
             }
             if (target_angle == -1) {
-                printf("No suitable target angle found\n");
+                printf("No suitable target angle found. Defaulting to 42...\n");
+                target_angle = 42;
             } else {
                 printf("Angle %d points to an unmaped tile!\n", target_angle);
             }
