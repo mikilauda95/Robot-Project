@@ -57,7 +57,6 @@ void update_position() {
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180); 
 	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
-		printf("Reached target destination!\n");
 		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
 		target_x = -1;
 		target_y = -1;
@@ -140,7 +139,6 @@ int movement_init(){
 }
 
 void stop(){
-	printf("stop\n");
 	update_position(); // make sure to update the position when we stop. 
 	do_track_position = false;
 	do_sweep_sonar = false;
@@ -201,7 +199,6 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 	get_message(sensor_queue, &command, &current_angle);
 	
 	float target = current_angle + delta;
-	printf("turn deg: delta = %f, current = %d, target = %f\n", delta, current_angle, target);
 
 	if (delta > 0) {
 		set_tacho_speed_sp( motor[L], angle_speed );
@@ -256,7 +253,6 @@ void *movement_start(void* queues) {
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
-		printf("MOVEMENT: got message %d\n", command);
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
@@ -271,13 +267,12 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
+				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
+				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
 				target_dist = value;
-				target_x = (coord.x + (value * cos(heading*M_PI/180))+0.5);
-				target_y = (coord.y + (value * sin(heading*M_PI/180))+0.5);
-				printf("Set target dest x:%d, y:%d\n", target_x, target_y);	
 			break;
 			
 			case MESSAGE_STOP:

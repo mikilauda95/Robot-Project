@@ -134,7 +134,14 @@ void message_handler(uint16_t command, int16_t value) {
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
                 robot_x = 10 * pos_pair[0];
                 robot_y = 10 * pos_pair[1];
-                map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = ROBOT_POSITION;
+                int x = (int)(robot_x/TILE_SIZE + 0.5);
+                int y = (int)(robot_y/TILE_SIZE + 0.5);
+                map[y][x] = ROBOT_POSITION;
+                map[y+1][x] = EMPTY;
+                map[y-1][x] = EMPTY;
+                map[y][x+1] = EMPTY;
+                map[y][x-1] = EMPTY;
+                
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
             }
