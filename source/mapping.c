@@ -14,6 +14,8 @@
 #define WALL 5
 #define ROBOT_POSITION 7
 
+char *printlist = "* X'???r??";
+
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
 #define MAX_DIST 750 // Max distance in mm
@@ -43,16 +45,26 @@ void printMap(){
     }
 }
 
-bool points_to_unmapped_tile(float ang) {
-    int x, y;   
-    for (int i = 0; i < MAX_DIST * 5; i += TILE_SIZE) {
-        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+void printMap2(){
+    // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
+    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+        for (int j=0; j<MAP_SIZE_X; j++){
+            printf("%c", printlist[map[i][j]]);
+        }
+        printf("\n");
+    }
+}
+
+int distance_from_unmapped_tile(float ang) {
+    int x, y;
+    for (int dist = 0; dist < MAX_DIST * 5; dist += TILE_SIZE) {
+        y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (map[y][x] == UNMAPPED) {
-            return true;
+            return dist;
         } else if (map[y][x] != EMPTY) {
-            return false;
+            return -1;
         }
 
     }
@@ -90,22 +102,27 @@ void message_handler(uint16_t command, int16_t value) {
 
         case MESSAGE_SCAN_COMPLETE: {
             int16_t target_angle = -1;
+            int16_t target_distance = -1;
             int16_t angle_increment = 45;
 
             printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
             for (int angle = 90; angle < 450; angle += angle_increment) {
                 angle %=360;
-                if (points_to_unmapped_tile(angle)) {
+                int d = distance_from_unmapped_tile(angle);
+                if (d > 0) {
                     target_angle = angle;
+                    target_distance = d;
                     break;
                 }
             }
             if (target_angle == -1) {
-                printf("No suitable target angle found. Defaulting to 42...\n");
+                printf("\t... ok so there is a problem, no suitable target angle found. Defaulting to 42...\n");
                 target_angle = 42;
+                target_distance = MAX_DIST;
             } else {
-                printf("Angle %d points to an unmaped tile!\n", target_angle);
+                printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);
             }
+            send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, target_distance);
             send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
         }
         break;
@@ -137,7 +154,7 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
-            printMap();
+            printMap2();
         break;
     }
 }
