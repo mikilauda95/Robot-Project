@@ -133,8 +133,8 @@ int movement_init(){
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = 40.0;
-	coord.y = 10.0;
+	coord.x = 50.0;
+	coord.y = 50.0;
 
 	return 0;
 }
@@ -274,7 +274,7 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				forward2(100);
+				forward2(130);
 			break;
 			
 			case MESSAGE_STOP:

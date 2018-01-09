@@ -16,7 +16,7 @@
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
-#define MAX_DIST 500 // Max distance in mm
+#define MAX_DIST 750 // Max distance in mm
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
@@ -90,10 +90,11 @@ void message_handler(uint16_t command, int16_t value) {
 
         case MESSAGE_SCAN_COMPLETE: {
             int16_t target_angle = -1;
-            int16_t angle_increment = 30;
+            int16_t angle_increment = 45;
 
             printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
-            for (int angle = 0; angle < 360; angle += angle_increment) {
+            for (int angle = 90; angle < 450; angle += angle_increment) {
+                angle %=360;
                 if (points_to_unmapped_tile(angle)) {
                     target_angle = angle;
                     break;

@@ -73,10 +73,10 @@ void event_handler(uint16_t command, int16_t value) {
 					} else if (delta > 180) {
 						delta -=360;
 					}
-					printf("Turn not complete. Delta: %d, curr: %d, target: %d \n", delta, current_heading, target_heading);
+					//printf("Turn not complete. Delta: %d, curr: %d, target: %d \n", delta, current_heading, target_heading);
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 				} else {
-					printf("Turn complete! \n");
+					//printf("Turn complete! \n");
 					send_message(queue_main_to_move, MESSAGE_HEADING, current_heading);
 					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
 					state = STATE_RUNNING;
@@ -199,8 +199,8 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-	state = STATE_RUNNING;	
+	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+	state = STATE_SCANNING;	
 
 	uint16_t command;
 	int16_t value;
