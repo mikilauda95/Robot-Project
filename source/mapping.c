@@ -151,6 +151,11 @@ void *mapping_start(void* queues){
     uint16_t command;
     int16_t value;
 
+    // hard-code the virtual fence
+    for (int x = 0; x < MAP_SIZE_X; x++) {
+        map[0][x] = OBSTACLE;
+    }
+
     while(1) {
         get_message(queue_from_main, &command, &value);
         message_handler(command, value);
