@@ -102,21 +102,19 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_move, MESSAGE_STOP, 0);
 					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 					state = STATE_STOPPED;
+			} else if (command == MESSAGE_FORWARD_COMPLETE) {
+					send_message(queue_main_to_move, MESSAGE_STOP, 0);
+					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+					state = STATE_STOPPED;
 			}
 		break; 
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
-				// turn the robot where we want it before running again
-				int delta = (target_heading - current_heading); // TODO consider moving this stuff to movement module, and let main operate with heading over 360 and under 0
-				if (delta < -180) {
-					delta +=360;
-				} else if (delta > 180) {
-					delta -=360;
-				}
-				send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
-				state = STATE_TURNING;
+				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+				send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				state = STATE_STOPPED;
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
@@ -127,6 +125,15 @@ void event_handler(uint16_t command, int16_t value) {
 			if (command == MESSAGE_SCAN_STARTED) {
 				send_message(queue_main_to_mapping, MESSAGE_SCAN, 0);
 				state = STATE_SCANNING;
+			} else if (command == MESSAGE_DEST_ANGLE) {
+				int delta = (value - current_heading);
+				if (delta < -180) {
+					delta +=360;
+				} else if (delta > 180) {
+					delta -=360;
+				}
+				send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
+				state = STATE_TURNING;
 			}
 		break;
 	}
@@ -142,6 +149,8 @@ void  INThandler() {
 
 	// Let the movement thread have some time to stop motors
 	Sleep(500);
+
+	// Close and unlink the queues, this should help making sure we have no messages left from the previous run
 	mq_close(queue_main_to_bt);
 	mq_close(queue_bt_to_main);
 	mq_close(queue_main_to_move);
@@ -157,11 +166,9 @@ void  INThandler() {
 	mq_unlink("/main_to_mapping");
 	mq_unlink("/mapping_to_main");
 
-	
 	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
 	pthread_cancel(mapping_thread);
-	// Unlink the queues, this should help making sure we have no messages left from the previous run
 	exit(0);
 }
 
@@ -197,8 +204,8 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-	state = STATE_STOPPED;	
+	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+	state = STATE_RUNNING;	
 
 	uint16_t command;
 	int16_t value;

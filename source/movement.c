@@ -148,6 +148,31 @@ void forward(){
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
+void forward2(int distance){
+	do_track_position = true;
+	do_sweep_sonar = true;
+	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
+    set_tacho_speed_sp(motor[L], RUN_SPEED );
+    set_tacho_speed_sp(motor[R], RUN_SPEED );
+	set_tacho_position_sp(motor[L], tics);
+	set_tacho_position_sp(motor[R], tics);
+	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
+	set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
+	int spd = 0;
+	// First we wait until the motor starts spinning
+	while (spd  == 0) {
+		Sleep(10);
+		get_tacho_speed(motor[L], &spd);
+	}
+	// Then we block until done running	
+	while ( spd != 0 ) { 
+		get_tacho_speed(motor[L], &spd);
+		Sleep(10);
+	}
+}
+
+
+	
 
 void turn_degrees(float angle, int speed) {
 	// Turn more slowly if the angle in small
@@ -249,7 +274,8 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				forward();
+				forward2(100);
+				send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
 			break;
 			
 			case MESSAGE_STOP:
