@@ -60,10 +60,6 @@ void event_handler(uint16_t command, int16_t value) {
 		case MESSAGE_ANGLE:
 			current_heading = value;
 			break;
-		case MESSAGE_TARGET_ANGLE:
-		case MESSAGE_TARGET_DISTANCE:
-			// todo: handle new targets here
-			break;
 	}
 
 	// handle events depending on current state
@@ -126,18 +122,23 @@ void event_handler(uint16_t command, int16_t value) {
 		break;
 
 		case STATE_STOPPED:
-			if (command == MESSAGE_SCAN_STARTED) {
-				send_message(queue_main_to_mapping, MESSAGE_SCAN, 0);
-				state = STATE_SCANNING;
-			} else if (command == MESSAGE_DEST_ANGLE) {
-				int delta = (value - current_heading);
-				if (delta < -180) {
-					delta +=360;
-				} else if (delta > 180) {
-					delta -=360;
-				}
-				send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
-				state = STATE_TURNING;
+			switch (command) {
+				case MESSAGE_SCAN_STARTED:
+					send_message(queue_main_to_mapping, MESSAGE_SCAN, 0);
+					state = STATE_SCANNING;
+				break;
+				case MESSAGE_TARGET_ANGLE:
+						int delta = (value - current_heading);
+						if (delta < -180) {
+							delta +=360;
+						} else if (delta > 180) {
+							delta -=360;
+						}
+						send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
+						state = STATE_TURNING;
+					}
+					
+				break;
 			}
 		break;
 	}
