@@ -115,6 +115,9 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_mapping, MESSAGE_SCAN, 0);
 					state = STATE_SCANNING;
 				break;
+				case MESSAGE_TARGET_DISTANCE:
+					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, value/10);
+				break;
 				case MESSAGE_TARGET_ANGLE:
 				{
 					int delta = (value - current_heading);

@@ -32,7 +32,7 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_x, target_y;
+int target_x, target_y, target_dist;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -157,9 +157,6 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 void forward2(int distance){
-	target_x = (coord.x + (distance * cos(heading*M_PI/180))+0.5);
-	target_y = (coord.y + (distance * sin(heading*M_PI/180))+0.5);
-	printf("Set target dest x:%d, y:%d\n", target_x, target_y);	
 	do_track_position = true;
 	do_sweep_sonar = true;
 	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
@@ -274,7 +271,13 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				forward2(130);
+				forward2(target_dist);
+			break;
+			case MESSAGE_TARGET_DISTANCE:
+				target_dist = value;
+				target_x = (coord.x + (value * cos(heading*M_PI/180))+0.5);
+				target_y = (coord.y + (value * sin(heading*M_PI/180))+0.5);
+				printf("Set target dest x:%d, y:%d\n", target_x, target_y);	
 			break;
 			
 			case MESSAGE_STOP:
