@@ -257,6 +257,9 @@ void *movement_start(void* queues) {
 			break;
 
 			case MESSAGE_SCAN:
+				stop();
+				Sleep(500);			
+				send_message(movement_queue_to_main, MESSAGE_SCAN_STARTED, 0);
 				turn_degrees(360, SCAN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;

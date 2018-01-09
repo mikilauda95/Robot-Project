@@ -15,11 +15,13 @@
 #define STATE_TURNING 1
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
+#define STATE_STOPPED 4
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
 mqd_t queue_sensors_to_main;
-mqd_t queue_main_to_mapping;
+mqd_t queue_main_to_mapping, queue_mapping_to_main;
+
 pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = 90; // Start facing forward
 int current_heading;
@@ -32,7 +34,8 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 	mqd_t read_queues[] = {
 		queue_sensors_to_main,
 		queue_move_to_main,
-		queue_bt_to_main
+		queue_bt_to_main,
+		queue_mapping_to_main
 	};
 	uint8_t n_queues = sizeof(read_queues) / sizeof(mqd_t);
 	current_queue_index %= n_queues;
@@ -46,9 +49,7 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 	}
 }
 
-void event_handler(uint16_t command, int16_t value) {
-	static int state = STATE_RUNNING;
-	
+void event_handler(uint16_t command, int16_t value) {	
 	// handle events not depending on current state	
 	switch(command) {
 		case MESSAGE_POS_X:
@@ -85,8 +86,7 @@ void event_handler(uint16_t command, int16_t value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (command == MESSAGE_SONAR) {
-				if (value < 200) {
+			if (command == MESSAGE_SONAR && value < 200) {
 					/*int turn;
 					if (rand()%2 >=1) {
 						turn = -90;
@@ -101,10 +101,9 @@ void event_handler(uint16_t command, int16_t value) {
 					*/
 					send_message(queue_main_to_move, MESSAGE_STOP, 0);
 					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-					state = STATE_SCANNING;
-					return;
-				}
-			} 
+					state = STATE_STOPPED;
+			}
+		break; 
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
@@ -121,6 +120,13 @@ void event_handler(uint16_t command, int16_t value) {
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
+			}
+		break;
+
+		case STATE_STOPPED:
+			if (command == MESSAGE_SCAN_STARTED) {
+				send_message(queue_main_to_mapping, MESSAGE_SCAN, 0);
+				state = STATE_SCANNING;
 			}
 		break;
 	}
@@ -141,6 +147,7 @@ void  INThandler() {
 	mq_close(queue_main_to_move);
 	mq_close(queue_move_to_main);
 	mq_close(queue_main_to_mapping);
+	mq_close(queue_mapping_to_main);
 	
 	mq_unlink("/sensors");
 	mq_unlink("/movement_from_main");
@@ -148,6 +155,8 @@ void  INThandler() {
 	mq_unlink("/bt_from_main");
 	mq_unlink("/bt_to_main");
 	mq_unlink("/main_to_mapping");
+	mq_unlink("/mapping_to_main");
+
 	
 	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
@@ -172,11 +181,13 @@ int main() {
 	queue_main_to_bt 			= init_queue("/bt_from_main", O_CREAT | O_RDWR);
 	queue_bt_to_main 			= init_queue("/bt_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_mapping 		= init_queue("/main_to_mapping", O_CREAT | O_RDWR);
+	queue_mapping_to_main 		= init_queue("/mapping_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
+
 
 	mqd_t bt_queues[] = {queue_main_to_bt, queue_bt_to_main};
 	mqd_t movement_queues[] = {queue_main_to_move, queue_move_to_main};
 	mqd_t sensor_queues[] = {queue_sensors_to_main};
-	mqd_t mapping_queues[] = {queue_main_to_mapping};
+	mqd_t mapping_queues[] = {queue_main_to_mapping, queue_mapping_to_main};
 
 	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
@@ -187,7 +198,7 @@ int main() {
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
 	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-	state = STATE_SCANNING;	
+	state = STATE_STOPPED;	
 
 	uint16_t command;
 	int16_t value;

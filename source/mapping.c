@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <math.h>
 
 #include "messages.h"
@@ -15,7 +16,7 @@
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
-#define MAX_DIST 1000 // Max distance in mm
+#define MAX_DIST 500 // Max distance in mm
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
@@ -61,40 +62,50 @@ void update_map(float ang, int dist){
         map[y][x] = OBSTACLE;
         fprintf(f, "%d %d\n", x, y);
     }
-    map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = ROBOT_POSITION;
 }
 
 void message_handler(uint16_t command, int16_t value) {
+    
     switch (command) {
+        case MESSAGE_SCAN:
+        break;
+        case MESSAGE_SCAN_COMPLETE:
+        break;
+
         case MESSAGE_POS_X:
         case MESSAGE_POS_Y:
-            // These lines are to make sure that we have update both positions at the same time.
+            // These lines are to make sure that we update both positions at the same time.
             pos_pair[command==MESSAGE_POS_X?0:1] = value;
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
                 robot_x = 10 * pos_pair[0];
                 robot_y = 10 * pos_pair[1];
+                map[(int)(robot_y/TILE_SIZE + 0.5)][(int)(robot_x/TILE_SIZE +0.5)] = ROBOT_POSITION;
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
             }
-            break;
+        break;
+
         case MESSAGE_ANGLE:
         case MESSAGE_SONAR:
+            // These lines are to make sure that we update both angle and distance at the same time.
             data_pair[command==MESSAGE_ANGLE?0:1] = value;
             if (data_pair[0] != -1 && data_pair[1] != -1) {
-                update_map((float)data_pair[0], data_pair[1]);
+                update_map((float)data_pair[0], data_pair[1]);                
                 data_pair[0] = -1;
                 data_pair[1] = -1;
             }
-            break;
+        break;
+
         case MESSAGE_PRINT_MAP:
             printMap();
-            break;
+        break;
     }
 }
 
 void *mapping_start(void* queues){
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_from_main = tmp[0];
+    mqd_t queue_mapping_to_main = tmp[1];
     f = fopen("objects.txt", "w");
 
     uint16_t command;
