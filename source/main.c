@@ -87,18 +87,6 @@ void event_handler(uint16_t command, int16_t value) {
 		
 		case STATE_RUNNING:
 			if (command == MESSAGE_SONAR && value < 200) {
-					/*int turn;
-					if (rand()%2 >=1) {
-						turn = -90;
-					} else {
-						turn = 90;
-					}
-					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, turn);
-					target_heading += turn;
-					target_heading %= 360;
-					if (target_heading < 0){target_heading+=360;}
-					state = STATE_TURNING;
-					*/
 					send_message(queue_main_to_move, MESSAGE_STOP, 0);
 					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 					state = STATE_STOPPED;
@@ -128,16 +116,16 @@ void event_handler(uint16_t command, int16_t value) {
 					state = STATE_SCANNING;
 				break;
 				case MESSAGE_TARGET_ANGLE:
-						int delta = (value - current_heading);
-						if (delta < -180) {
-							delta +=360;
-						} else if (delta > 180) {
-							delta -=360;
-						}
-						send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
-						state = STATE_TURNING;
+				{
+					int delta = (value - current_heading);
+					if (delta < -180) {
+						delta +=360;
+					} else if (delta > 180) {
+						delta -=360;
 					}
-					
+					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
+					state = STATE_TURNING;
+				}
 				break;
 			}
 		break;
