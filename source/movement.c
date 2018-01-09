@@ -26,11 +26,13 @@ enum name {L, R};
 uint8_t motor[2];
 uint8_t sweep_motor;
 
+mqd_t movement_queue_from_main, movement_queue_to_main;
+
 struct coord {
 	float x;
 	float y;
 } coord;
-
+int target_x, target_y;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -54,6 +56,12 @@ void update_position() {
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180); 
+	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
+		printf("Reached target destination!\n");
+		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
+		target_x = -1;
+		target_y = -1;
+	}
 }
 
 void *position_sender(void* queues) {
@@ -149,6 +157,9 @@ void forward(){
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
 void forward2(int distance){
+	target_x = (coord.x + (distance * cos(heading*M_PI/180))+0.5);
+	target_y = (coord.y + (distance * sin(heading*M_PI/180))+0.5);
+	printf("Set target dest x:%d, y:%d\n", target_x, target_y);	
 	do_track_position = true;
 	do_sweep_sonar = true;
 	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
@@ -158,17 +169,6 @@ void forward2(int distance){
 	set_tacho_position_sp(motor[R], tics);
 	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
 	set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
-	int spd = 0;
-	// First we wait until the motor starts spinning
-	while (spd  == 0) {
-		Sleep(10);
-		get_tacho_speed(motor[L], &spd);
-	}
-	// Then we block until done running	
-	while ( spd != 0 ) { 
-		get_tacho_speed(motor[L], &spd);
-		Sleep(10);
-	}
 }
 
 
@@ -244,8 +244,8 @@ void *movement_start(void* queues) {
 	printf("Movement Started\n");
 	
 	mqd_t* tmp = (mqd_t*)queues;
-	mqd_t movement_queue_from_main = tmp[0];
-	mqd_t movement_queue_to_main = tmp[1];
+	movement_queue_from_main = tmp[0];
+	movement_queue_to_main = tmp[1];
 
 	set_tacho_position(motor[L], 0);
 	set_tacho_position(motor[R], 0);
@@ -275,11 +275,13 @@ void *movement_start(void* queues) {
 			
 			case MESSAGE_FORWARD:
 				forward2(100);
-				send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
 			break;
 			
 			case MESSAGE_STOP:
 				stop();
+				// Forget old target when stopping
+				target_x = -1;
+				target_y = -1;
 			break;
 
 			case MESSAGE_SCAN:

@@ -86,7 +86,7 @@ void event_handler(uint16_t command, int16_t value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (command == MESSAGE_SONAR && value < 200) {
+			if (command == MESSAGE_SONAR && value < 300) {
 					send_message(queue_main_to_move, MESSAGE_STOP, 0);
 					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 					state = STATE_STOPPED;
@@ -100,8 +100,8 @@ void event_handler(uint16_t command, int16_t value) {
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
-				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
 				state = STATE_STOPPED;
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
@@ -124,6 +124,7 @@ void event_handler(uint16_t command, int16_t value) {
 					} else if (delta > 180) {
 						delta -=360;
 					}
+					target_heading = value;
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 					state = STATE_TURNING;
 				}
