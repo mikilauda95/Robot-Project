@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 
 #include "messages.h"
 
@@ -18,7 +19,7 @@ char *printlist = "* X'???r??";
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
-#define MAX_DIST 750 // Max distance in mm
+#define MAX_DIST 500 // Max distance in mm
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
@@ -49,7 +50,7 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%c", printlist[map[i][j]]);
+            printf("%c ", printlist[map[i][j]]);
         }
         printf("\n");
     }
@@ -106,19 +107,21 @@ void message_handler(uint16_t command, int16_t value) {
             int16_t angle_increment = 45;
 
             printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
-            for (int angle = 90; angle < 450; angle += angle_increment) {
-                angle %=360;
-                int d = distance_from_unmapped_tile(angle);
+            for (int angle = 0; angle < 360; angle += angle_increment) {
+                
+                int tmp = (angle + 90) % 360;
+                int d = distance_from_unmapped_tile(tmp);
                 if (d > 0) {
-                    target_angle = angle;
+                    target_angle = tmp;
                     target_distance = d;
                     break;
                 }
             }
+            printf("done with for loop. angle is now %d\n", target_angle);
             if (target_angle == -1) {
-                printf("\t... ok so there is a problem, no suitable target angle found. Defaulting to 42...\n");
-                target_angle = 42;
+                target_angle = (rand() % 8) * 45;
                 target_distance = MAX_DIST;
+                printf("\tNo suitable angles found. Generated random: %d...\n", target_angle);
             } else {
                 printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);
             }
@@ -167,6 +170,8 @@ void message_handler(uint16_t command, int16_t value) {
 }
 
 void *mapping_start(void* queues){
+    srand(time(NULL));
+
     mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
     queue_mapping_to_main = tmp[1];
