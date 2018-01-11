@@ -60,6 +60,26 @@ void initialize_map(int option){
 	}
 }
 
+void filter_map(int option){
+	int i;
+	if (option==0) {
+		//mapping the horizontal lines
+		for (i = 1; i < HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[MAP_SIZE_Y-1-1][i]=EMPTY;
+			map[( MAP_SIZE_Y-VER_SIZE+1 )][i]=EMPTY;
+			map[( MAP_SIZE_Y-VER_SIZE-1 )][i]=EMPTY;
+		}
+		//mapping the vertical lines
+		for (i = MAP_SIZE_Y-VER_SIZE+1; i < MAP_SIZE_Y-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][HOR_SIZE+1]=EMPTY;
+			map[i][HOR_SIZE-1]=EMPTY;
+			map[i][0+1]=EMPTY;
+		}
+	}
+}
+
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
@@ -96,7 +116,7 @@ int distance_from_unmapped_tile(float ang) {
 }
 
 void update_map(float ang, int dist){
-    int x, y;   
+    int x, y;
     for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
         y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
@@ -168,7 +188,6 @@ void message_handler(uint16_t command, int16_t value) {
                 map[y-1][x] = EMPTY;
                 map[y][x+1] = EMPTY;
                 map[y][x-1] = EMPTY;
-                
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
             }
@@ -188,6 +207,7 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
+			filter_map(OPTION);
             printMap2();
         break;
     }
