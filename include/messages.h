@@ -22,9 +22,12 @@
 
 #define MESSAGE_PRINT_MAP 30
 #define MESSAGE_DEST_ANGLE 31
+#define MESSAGE_TARGET_ANGLE 32
+#define MESSAGE_TARGET_DISTANCE 33
 
-#define MESSAGE_TARGET_ANGLE 40
-#define MESSAGE_TARGET_DISTANCE 41
+#define MESSAGE_MAP_X_DIM 41
+#define MESSAGE_MAP_Y_DIM 42
+#define MESSAGE_MAP_POINT 43
 
 mqd_t init_queue (char *mq_name, int open_flags);
 void send_message(mqd_t mq, uint16_t command, int16_t value);
