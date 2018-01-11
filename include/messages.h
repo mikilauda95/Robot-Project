@@ -1,6 +1,11 @@
 #include <mqueue.h>
 #include <stdint.h>
 
+#define MAX_MSG 15
+#define OVER 37
+#define MQ_SIZE 10
+#define PMODE 0666
+
 #define MESSAGE_STOP 0
 #define MESSAGE_TURN_DEGREES 1
 #define MESSAGE_REACHED_DEST 2

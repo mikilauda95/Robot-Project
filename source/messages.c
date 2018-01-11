@@ -2,11 +2,6 @@
 #include <stdlib.h>
 #include "messages.h"
 
-#define MAX_MSG 15
-#define OVER 37
-#define MQ_SIZE 10
-#define PMODE 0666
-
 /* to open the message queue */
 mqd_t init_queue (char* mq_name, int open_flags) {
     struct mq_attr attr;
