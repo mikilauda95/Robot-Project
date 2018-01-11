@@ -10,7 +10,7 @@
 
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 67
+#define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 350 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 50
@@ -32,7 +32,8 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_dist, current_dist;
+int target_dist;
+float current_dist;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -57,7 +58,7 @@ void update_position() {
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180);
-	// If we reached target within 3cm margin
+	// If we reached target within 5cm margin
 	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
 		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
 	}
