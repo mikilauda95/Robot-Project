@@ -94,7 +94,7 @@ void update_map(float ang, int dist){
         }
         if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
             map[y][x] = OBSTACLE;
-        } else if (map[y][x] > OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
             map[y][x]++; // Increment Obstacles we have found before
         }
     }
