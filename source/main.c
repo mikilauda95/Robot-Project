@@ -86,14 +86,16 @@ void event_handler(uint16_t command, int16_t value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (command == MESSAGE_SONAR && value < 300) {
-					send_message(queue_main_to_move, MESSAGE_STOP, 0);
-					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-					state = STATE_STOPPED;
+			if (command == MESSAGE_SONAR && value < 250) {
+				printf("Main: stop. Reason: sonar (value %d)\n", value);
+				send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+				state = STATE_STOPPED;
 			} else if (command == MESSAGE_FORWARD_COMPLETE) {
-					send_message(queue_main_to_move, MESSAGE_STOP, 0);
-					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-					state = STATE_STOPPED;
+				printf("Main: stop. Reason: reached target distance\n");
+				send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+				state = STATE_STOPPED;
 			}
 		break; 
 
@@ -173,12 +175,11 @@ void  INThandler() {
 int main() {
 
     movement_init();
-	/*
+	
 	if (!bt_connect()) {
 		exit(1);
 	}
 	bt_wait_for_start();
-	*/
 	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
@@ -198,7 +199,7 @@ int main() {
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 
-	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
