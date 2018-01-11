@@ -32,7 +32,7 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_x, target_y, target_dist;
+int target_dist, current_dist;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -52,14 +52,14 @@ void update_position() {
 	get_tacho_position(motor[L], &lpos);
 	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	current_dist += distance;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
-	coord.y += distance * sin(heading*M_PI/180); 
-	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
+	coord.y += distance * sin(heading*M_PI/180);
+	// If we reached target within 3cm margin
+	if (target_dist > current_dist - 3 && target_dist < current_dist + 3) {
 		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
-		target_x = -1;
-		target_y = -1;
 	}
 }
 
@@ -278,8 +278,8 @@ void *movement_start(void* queues) {
 			case MESSAGE_STOP:
 				stop();
 				// Forget old target when stopping
-				target_x = -1;
-				target_y = -1;
+				target_dist = -1;
+				current_dist = 0;
 			break;
 
 			case MESSAGE_SCAN:
