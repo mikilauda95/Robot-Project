@@ -52,6 +52,44 @@ static void _send_position(uint16_t x, uint16_t y) {
 
 }
 
+static void _send_mapdata(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b) {
+	static uint16_t msgId = 0;
+	char string[58];
+
+	*((uint16_t *) string) = msgId++;
+	string[2] = BT_TEAM_ID;
+	string[3] = 0xFF;
+	string[4] = BT_MSG_MAPDATA;
+	string[5] = x;
+	string[6] = 0x00;
+	string[7] = y;
+	string[8] = 0x00;
+	string[9] = r;
+	string[10] = g;
+	string[11] = b;
+	int ret = write(sock, string, 12);
+	if (ret < 0) {
+		fprintf(stderr, "BT: Failed to write to server!\r\n");
+		return;
+	}
+	printf("BT: sending MAPDATA (%d, %d) = (%d, %d, %d)\r\n", x, y, r, g, b);
+}
+
+static void _send_mapdone(void) {
+	static uint16_t msgId = 0;
+	char string[58];
+
+	*((uint16_t *) string) = msgId++;
+	string[2] = BT_TEAM_ID;
+	string[3] = 0xFF;
+	string[4] = BT_MSG_MAPDONE;
+	int ret = write(sock, string, 5);
+	if (ret < 0) {
+		fprintf(stderr, "BT: Failed to write to server!\r\n");
+		return;
+	}
+	printf("BT: send map done\n");
+}
 
 int bt_wait_for_start() {
 	char string[BT_MSG_LEN_MAX];
@@ -99,7 +137,10 @@ void* bt_client(void *queues){
 	uint16_t command;
 	int16_t value;
 	uint16_t pos_x, pos_y;
-	bool should_send = false;
+	uint16_t map_x_dim;
+	uint16_t map_y_dim;
+	uint16_t map_current_x, map_current_y;
+	bool should_send_position = false;
 
 	for(;;){
 		
@@ -111,118 +152,36 @@ void* bt_client(void *queues){
 			break;
 			case MESSAGE_POS_Y:
 				pos_y = value;
-				should_send = true;
+				should_send_position = true;
+			break;
+			case MESSAGE_MAP_X_DIM:
+				map_x_dim = value;
+			break;
+			case MESSAGE_MAP_Y_DIM:
+				map_y_dim = value;
+			break;
+			case MESSAGE_MAP_POINT: {
+				_send_mapdata(map_current_x, map_current_y, 255 * value, 255 * value, 255 * value);
+				map_current_x++;
+				if (map_current_x > map_x_dim - 1) {
+					map_current_x = 0;
+					map_current_y++;
+				}
+				if (map_current_y == map_y_dim - 1) {
+					_send_mapdone();
+					map_current_x = 0;
+					map_current_y = 0;
+				}
+			}
 			break;
 		}
 
-		if(should_send) {
+		if(should_send_position) {
 			_send_position(pos_x, pos_y);
-			should_send = false;
+			should_send_position = false;
 		}
 
 	}
 
 	return NULL;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// void bt_client(int sock, mqd_t bt_mq) {
-
-// 	/*
-// 	 * This is where we would read from the message queue and call 
-// 	 * bt_send_to_server. Due to the current limitations in the message
-// 	 * queue, I will wait until we have implemented a more dynamic message
-// 	 * queue that supports multi-chararcter messages. The below loop is 
-// 	 * just there to keep the compiler happy.
-// 	 * 														-Fredrk
-// 	*/
-
-// 	for(;;){
-// 		uint16_t x = 100;
-// 		uint16_t y = 120;
-// 		bt_send_position(sock, x, y);
-// 		Sleep(2000);
-// 	}
-
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-// uint16_t msgId = 0;
-// static int bt_send_to_server(int type, char* data, int sock) {
-// 	char string[58];
-// 	printf ("I'm navigating...\n");
-
-// 	if(type == BT_MSG_POSITION){
-// 		*((uint16_t *) string) = msgId++;
-// 		string[2] = BT_TEAM_ID;
-// 		string[3] = 0xFF;
-// 		string[4] = BT_MSG_POSITION;
-// 		string[5] = 20;          /* x */
-// 		string[6] = 0x00;
-// 		string[7] = 50;              /* y */
-// 		string[8]= 0x00;
-// 		write(sock, string, 9);
-// 	}
-// }
-// static int bt_send_to_server(int type, char* data, int sock) {
-// 	static uint16_t msg_ID = 0;
-// 	int msg_len = 0;
-// 	char msg[BT_MSG_LEN_MAX];
-// 	int status;
-
-// 	if (type == BT_MSG_POSITION){
-//     	*((uint16_t *) msg) = msg_ID++;
-// 		msg[msg_len++] = BT_TEAM_ID;
-// 		msg[msg_len++] = 0xFF;
-// 		msg[msg_len++] = BT_MSG_POSITION;
-// 		msg[msg_len++] = 0;
-// 		msg[msg_len++] = 10;
-// 		msg[msg_len++] = 0;
-// 		msg[msg_len++] = 20;
-// 		++msg_ID;
-// 	} else {
-// 		fprintf(stderr, "bt_send_message: unkown message type: %d\n", type);
-// 		return -1;
-// 	}
-
-// 	printf("Sending data, %d bytes long\r\n", msg_len);
-// 	status = write(sock, msg, 9);
-// 	if (status != 0) {
-// 		printf("write with status %d\r\n", status);
-// 		fprintf(stderr, "bt_send_message: failed to write to socket: %d\n", sock);
-// 		return -1;
-// 	}
-
-// 	return 0;
-// }
