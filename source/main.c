@@ -175,10 +175,10 @@ void  INThandler() {
 int main() {
 
     movement_init();
-	if (!bt_connect()) {
-		exit(1);
-	}
-	bt_wait_for_start();
+	/*if (!bt_connect()) {*/
+		/*exit(1);*/
+	/*}*/
+	/*bt_wait_for_start();*/
 
 	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
@@ -199,7 +199,7 @@ int main() {
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 
-	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	/*pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);*/
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
