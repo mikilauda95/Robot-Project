@@ -29,8 +29,10 @@ void send_message(mqd_t mq, uint16_t command, int16_t value) {
     int32_t message = ((command<<16) & 0xFFFF0000) | (value & 0xFFFF); //put the command and the value into the same int.
 
     int status = mq_send (mq, (char *) &message, sizeof(int32_t), 1); //sizeof for readability. 4 bytes
-    if (status == -1)
-      printf ("mq_send failure\n");
+    if (status == -1) {
+      printf("mq_send failure with command %d, value %d\n", command, value);
+    }
+
 
 }
 
