@@ -277,7 +277,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_STOP:
 				stop();
 				// Forget old target when stopping
-				target_dist = -1;
+				target_dist = -10;
 				current_dist = 0;
 			break;
 
