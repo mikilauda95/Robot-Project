@@ -13,6 +13,7 @@
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 350 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
+#define SCAN_SPEED 50
 #define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
@@ -25,11 +26,13 @@ enum name {L, R};
 uint8_t motor[2];
 uint8_t sweep_motor;
 
+mqd_t movement_queue_from_main, movement_queue_to_main;
+
 struct coord {
 	float x;
 	float y;
 } coord;
-
+int target_x, target_y, target_dist;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -51,8 +54,13 @@ void update_position() {
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
-	coord.x -= distance * cos(heading*M_PI/180); // TODO should be +=. But for that the gyro need to increase anti clockwise
+	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180); 
+	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
+		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
+		target_x = -1;
+		target_y = -1;
+	}
 }
 
 void *position_sender(void* queues) {
@@ -85,17 +93,14 @@ void *sonar_sweeper(void* what) {
 
 	for (;;) {
 
-		printf("sonar sweeper waiting for flag\n");		
 		if (do_sweep_sonar) {
 			set_tacho_position_sp( sweep_motor, sweep_amplitude);
 			set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
 			sweep_amplitude *= -1;
-			printf("did one sweep\n");
 			Sleep(sweep_time);
 			is_zeroed = false;
 		} else {
 			if (!is_zeroed) {
-				printf("zeroing \n");
 				set_tacho_position_sp( sweep_motor, 0);
 				set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);
 				is_zeroed = true;
@@ -127,14 +132,13 @@ int movement_init(){
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = 40.0;
-	coord.y = 10.0;
+	coord.x = 50.0;
+	coord.y = 50.0;
 
 	return 0;
 }
 
 void stop(){
-	printf("stop\n");
 	update_position(); // make sure to update the position when we stop. 
 	do_track_position = false;
 	do_sweep_sonar = false;
@@ -150,21 +154,37 @@ void forward(){
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
+void forward2(int distance){
+	do_track_position = true;
+	do_sweep_sonar = true;
+	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
+    set_tacho_speed_sp(motor[L], RUN_SPEED );
+    set_tacho_speed_sp(motor[R], RUN_SPEED );
+	set_tacho_position_sp(motor[L], tics);
+	set_tacho_position_sp(motor[R], tics);
+	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
+	set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
+}
 
-void turn_degrees(float angle) {
-	// Base the turn speed on the distance
-	int turn_speed = (angle>10||angle<-10)?ANG_SPEED:100;
+
+	
+
+void turn_degrees(float angle, int speed) {
+	// Turn more slowly if the angle in small
+	int turn_speed = (angle>10||angle<-10)?speed:100;
 	set_tacho_speed_sp( motor[L], turn_speed );
 	set_tacho_speed_sp( motor[R], turn_speed );
-	set_tacho_position_sp( motor[L], angle * DEGREE_TO_LIN );
-	set_tacho_position_sp( motor[R], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
+	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
 	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-	Sleep(10);
 	
-	int spd;
-	get_tacho_speed(motor[L], &spd);
-	// Block until done turning
-	
+	int spd = 0;
+	// First we wait until the motor starts spinning
+	while (spd  == 0) {
+		Sleep(10);
+		get_tacho_speed(motor[L], &spd);
+	}
+	// Then we block until done turning	
 	while ( spd != 0 ) { 
 		get_tacho_speed(motor[L], &spd);
 		Sleep(10);
@@ -179,7 +199,6 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 	get_message(sensor_queue, &command, &current_angle);
 	
 	float target = current_angle + delta;
-	printf("turn deg: delta = %f, current = %d, target = %f\n", delta, current_angle, target);
 
 	if (delta > 0) {
 		set_tacho_speed_sp( motor[L], angle_speed );
@@ -219,8 +238,8 @@ void *movement_start(void* queues) {
 	printf("Movement Started\n");
 	
 	mqd_t* tmp = (mqd_t*)queues;
-	mqd_t movement_queue_from_main = tmp[0];
-	mqd_t movement_queue_to_main = tmp[1];
+	movement_queue_from_main = tmp[0];
+	movement_queue_to_main = tmp[1];
 
 	set_tacho_position(motor[L], 0);
 	set_tacho_position(motor[R], 0);
@@ -229,18 +248,16 @@ void *movement_start(void* queues) {
 	pthread_t sonar_sweeper_thread;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
-
 	while(1) {
 	   
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
-
 		switch (command) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(150);
-				turn_degrees(value);
+				turn_degrees(value, ANG_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);
@@ -250,15 +267,30 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				forward();
+				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
+				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
+				forward2(target_dist);
+			break;
+			case MESSAGE_TARGET_DISTANCE:
+				target_dist = value;
 			break;
 			
 			case MESSAGE_STOP:
 				stop();
+				// Forget old target when stopping
+				target_x = -1;
+				target_y = -1;
+			break;
+
+			case MESSAGE_SCAN:
+				stop();
+				Sleep(500);			
+				send_message(movement_queue_to_main, MESSAGE_SCAN_STARTED, 0);
+				turn_degrees(360, SCAN_SPEED);
+				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;
 			case MESSAGE_HEADING:
 				heading = value;
-				printf("Heading is now %d, %d \n", heading, value);
 			break;
 		}
 	}

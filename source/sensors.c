@@ -28,11 +28,13 @@ void *sensors_start(void *queues){
         get_sensor_value0(sonar_sn, &sonar_value);
         get_sensor_value0(gyro_sn, &gyro_value);
         //send to main
-        gyro_value +=90;
+        gyro_value -=90;
         int gyro = (int)gyro_value%360;
-        if (gyro <0) {
+        if (gyro <=0) {
             gyro += 360;
         }
+        gyro = 360 - gyro; // flip so that the value increases anticlockwise
+        
         send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
         send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(gyro + 0.5));
         Sleep(40);

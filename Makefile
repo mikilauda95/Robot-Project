@@ -8,11 +8,13 @@
 #			messages.h
 #			movement.h
 #			sensors.h
+#			mapping.h
 #	 	source/
 #			bt_client.c
 #			messages.c
 #			movement.c
 #			sensors.c
+#			mapping.c
 #			main.c
 #
 # The main executable will be located in the same directory as you ran 
@@ -30,6 +32,7 @@ OBJS = \
 	$(BUILD_DIR)/sensors.o \
 	$(BUILD_DIR)/bt_client.o \
 	$(BUILD_DIR)/messages.o \
+	$(BUILD_DIR)/mapping.o \
 	$(BUILD_DIR)/main.o
 
 all: main
