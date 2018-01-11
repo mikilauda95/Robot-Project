@@ -12,15 +12,13 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 67
 #define RUN_SPEED 350 // Max is 1050
-#define ANG_SPEED 250 // Wheel speed when turning
+#define TURN_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 50
 #define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
 #define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
 #define WHEEL_RADIUS 2.7
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-
-#define POS_CALC_PERIOD_MS 10
 
 enum name {L, R};
 uint8_t motor[2];
@@ -57,7 +55,7 @@ void update_position() {
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180); 
 	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
-		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
+		send_message(movement_queue_to_main, MESSAGE_REACHED_DEST, 0);
 		target_x = -1;
 		target_y = -1;
 	}
@@ -257,7 +255,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(150);
-				turn_degrees(value, ANG_SPEED);
+				turn_degrees(value, TURN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);

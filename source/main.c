@@ -91,7 +91,7 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 				state = STATE_STOPPED;
-			} else if (command == MESSAGE_FORWARD_COMPLETE) {
+			} else if (command == MESSAGE_REACHED_DEST) {
 				printf("Main: stop. Reason: reached target distance\n");
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
@@ -146,9 +146,13 @@ void  INThandler() {
 	mq_close(queue_sensors_to_main);
 
 	pthread_cancel(sensors_thread);
-
+	
 	// Let the movement thread have some time to stop motors
 	Sleep(500);
+
+	pthread_cancel(movement_thread);
+	pthread_cancel(bluetooth_thread);
+	pthread_cancel(mapping_thread);
 
 	// Close and unlink the queues, this should help making sure we have no messages left from the previous run
 	mq_close(queue_main_to_bt);
@@ -166,9 +170,6 @@ void  INThandler() {
 	mq_unlink("/main_to_mapping");
 	mq_unlink("/mapping_to_main");
 
-	pthread_cancel(movement_thread);
-	pthread_cancel(bluetooth_thread);
-	pthread_cancel(mapping_thread);
 	exit(0);
 }
 
