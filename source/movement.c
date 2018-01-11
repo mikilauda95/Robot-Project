@@ -10,7 +10,7 @@
 
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 67
+#define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 350 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 50

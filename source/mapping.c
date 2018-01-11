@@ -9,13 +9,15 @@
 
 #define UNMAPPED 0
 #define EMPTY 1
-#define OBSTACLE 2
+#define ROBOT_POSITION 2
 #define MOVABLE 3
 #define VIRTUAL_WALL 4
 #define WALL 5
-#define ROBOT_POSITION 7
+#define OBSTACLE 10
 
-char *printlist = "* X'???r??";
+#define MAX_INCREMENTS 31
+// 1-W indicates objects with an increasing level of certainty
+char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
@@ -40,7 +42,7 @@ void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%d", map[i][j]);
+          printf("%d ", [map[i][j]]);
         }
         printf("\n");
     }
@@ -90,7 +92,11 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        map[y][x] = OBSTACLE;
+        if ( map[y][x] < OBSTACLE  && map[y][x] != WALL) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++;
+        }
         fprintf(f, "%d %d\n", x, y);
     }
 }
@@ -164,7 +170,7 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
-            printMap2();
+            printMap();
         break;
     }
 }
