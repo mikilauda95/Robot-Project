@@ -91,7 +91,7 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 				state = STATE_STOPPED;
-			} else if (command == MESSAGE_REACHED_TARGET) {
+			} else if (command == MESSAGE_FORWARD_COMPLETE) {
 				printf("Main: stop. Reason: reached target distance\n");
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
