@@ -58,7 +58,7 @@ void update_position() {
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180);
 	// If we reached target within 3cm margin
-	if (target_dist > current_dist - 3 && target_dist < current_dist + 3) {
+	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
 		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
 	}
 }
@@ -267,8 +267,6 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
-				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
