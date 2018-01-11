@@ -12,8 +12,14 @@
 #define VIRTUAL_WALL 4
 #define WALL 5
 
+#define OPTION 0
+
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
+
+#define HOR_SIZE 120/5 // in centimeters
+#define VER_SIZE 200/5 // in centimeters
+
 #define MAX_DIST 500 // Max distance in mm
 #define TILE_SIZE 50.0 //Size of each tile in mm. With decimal to ensure float division
 
@@ -24,6 +30,24 @@ int16_t data_pair[2];
 int16_t pos_pair[2] = {-1, -1};
 
 FILE * f;
+
+void initialize_map(int option){
+	if (option==0) {//arena map hardcoding
+		//mapping the horizontal lines
+	int	i;
+		for (i = 0; i < HOR_SIZE ; ++i) {
+			/*printf("debug\n");*/
+			map[MAP_SIZE_Y-1][i]=WALL;
+			map[( MAP_SIZE_Y-VER_SIZE )][i]=WALL;
+		}
+		//mapping the vertical lines
+		for (i = MAP_SIZE_Y-VER_SIZE; i < MAP_SIZE_Y ; ++i) {
+			/*printf("debug\n");*/
+			map[i][HOR_SIZE]=WALL;
+			map[i][0]=WALL;
+		}
+	}
+}
 
 
 void printMap(){
@@ -52,7 +76,7 @@ void update_map(float ang, int dist){
     if (dist < MAX_DIST) {
         y = (int)(((dist * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)(((dist * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
-        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
+        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             return;
         }
         map[y][x] = OBSTACLE;
@@ -100,6 +124,7 @@ void message_handler(uint16_t command, int16_t value) {
 void *mapping_start(void* queues){
     mqd_t* tmp = (mqd_t*)queues;
 	mqd_t queue_from_main = tmp[0];
+	initialize_map(OPTION);
     f = fopen("objects.txt", "w");
 
 
