@@ -10,6 +10,7 @@
 #include "sensors.h"
 #include "bt_client.h"
 #include "mapping.h"
+#include "consts.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 #define STATE_TURNING 1
@@ -23,7 +24,7 @@ mqd_t queue_sensors_to_main;
 mqd_t queue_main_to_mapping, queue_mapping_to_main;
 
 pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
-int target_heading = 90; // Start facing forward
+int target_heading = START_HEADING;
 int current_heading;
 int state;
 

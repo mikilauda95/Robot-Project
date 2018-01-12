@@ -7,13 +7,14 @@
 
 #include "mapping.h"
 #include "messages.h"
+#include "consts.h"
 
 char *printlist = "* X'???r??";
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
-int robot_x = 2000; // robot start position in mm
-int robot_y = 1000;
+int robot_x = ROBOT_START_X; // robot start position in mm
+int robot_y = ROBOT_START_Y;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
@@ -45,7 +46,7 @@ void printMap2(){
 
 int distance_from_unmapped_tile(float ang) {
     int x, y;
-    for (int dist = 0; dist < MAX_DIST * 5; dist += TILE_SIZE) {
+    for (int dist = 0; dist < MAX_SCAN_DIST * 5; dist += TILE_SIZE) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
@@ -60,7 +61,7 @@ int distance_from_unmapped_tile(float ang) {
 
 void update_map(float ang, int dist){
     int x, y;   
-    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
+    for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
         y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
@@ -71,7 +72,7 @@ void update_map(float ang, int dist){
             map[y][x] = EMPTY;
         }
     }
-    if (dist < MAX_DIST) {
+    if (dist < MAX_SCAN_DIST) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
@@ -107,7 +108,7 @@ void message_handler(uint16_t command, int16_t value) {
             printf("done with for loop. angle is now %d\n", target_angle);
             if (target_angle == -1) {
                 target_angle = (rand() % 8) * 45;
-                target_distance = MAX_DIST;
+                target_distance = MAX_SCAN_DIST;
                 printf("\tNo suitable angles found. Generated random: %d...\n", target_angle);
             } else {
                 printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);

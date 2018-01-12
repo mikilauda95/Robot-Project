@@ -8,6 +8,7 @@
 #include "ev3.h"
 #include "ev3_tacho.h"
 #include "messages.h"
+#include "consts.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -115,9 +116,9 @@ int movement_init(){
 	set_tacho_stop_action_inx( motor[R], TACHO_BRAKE );
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 
-	set_tacho_speed_sp(motor[L], RUN_SPEED );
-	set_tacho_speed_sp(motor[R], RUN_SPEED );
-	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
+	set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
+	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
 	
 	f = fopen("positions.txt", "w");
 
@@ -138,8 +139,8 @@ void stop(){
 void forward(){
 	do_track_position = true;
 	do_sweep_sonar = true;
-    set_tacho_speed_sp(motor[L], RUN_SPEED );
-    set_tacho_speed_sp(motor[R], RUN_SPEED );
+    set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+    set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
@@ -147,8 +148,8 @@ void forward2(int distance){
 	do_track_position = true;
 	do_sweep_sonar = true;
 	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
-    set_tacho_speed_sp(motor[L], RUN_SPEED );
-    set_tacho_speed_sp(motor[R], RUN_SPEED );
+    set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+    set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_position_sp(motor[L], tics);
 	set_tacho_position_sp(motor[R], tics);
 	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
