@@ -8,7 +8,7 @@
 #include "ev3.h"
 #include "ev3_tacho.h"
 #include "messages.h"
-#include "consts.h"
+#include "tuning.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 

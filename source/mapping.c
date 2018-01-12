@@ -7,7 +7,7 @@
 
 #include "mapping.h"
 #include "messages.h"
-#include "consts.h"
+#include "tuning.h"
 
 char *printlist = "* X'???r??";
 

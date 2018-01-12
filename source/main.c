@@ -10,7 +10,7 @@
 #include "sensors.h"
 #include "bt_client.h"
 #include "mapping.h"
-#include "consts.h"
+#include "tuning.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 #define STATE_TURNING 1
