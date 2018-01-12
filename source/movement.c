@@ -10,7 +10,7 @@
 
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 67
+#define RIGHT_MOTOR_PORT 68
 #define RUN_SPEED 350 // Max is 1050
 #define ANG_SPEED 250 // Wheel speed when turning
 #define SCAN_SPEED 50
@@ -32,7 +32,8 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_x, target_y, target_dist;
+int target_dist;
+float current_dist;
 // angle between robot nose and the x axis
 int heading = 90;
 
@@ -52,14 +53,14 @@ void update_position() {
 	get_tacho_position(motor[L], &lpos);
 	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	current_dist += distance;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
-	coord.y += distance * sin(heading*M_PI/180); 
-	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
+	coord.y += distance * sin(heading*M_PI/180);
+	// If we reached target within 5cm margin
+	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
 		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
-		target_x = -1;
-		target_y = -1;
 	}
 }
 
@@ -267,8 +268,6 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
-				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
@@ -278,8 +277,8 @@ void *movement_start(void* queues) {
 			case MESSAGE_STOP:
 				stop();
 				// Forget old target when stopping
-				target_x = -1;
-				target_y = -1;
+				target_dist = -10;
+				current_dist = 0;
 			break;
 
 			case MESSAGE_SCAN:
