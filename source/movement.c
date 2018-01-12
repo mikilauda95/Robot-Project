@@ -247,10 +247,10 @@ void *movement_start(void* queues) {
 
 	pthread_t position_sender_thread;
 	pthread_t sonar_sweeper_thread;
+	int scan_dir = -1;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
 	while(1) {
-	   
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
@@ -285,7 +285,8 @@ void *movement_start(void* queues) {
 				stop();
 				Sleep(500);			
 				send_message(movement_queue_to_main, MESSAGE_SCAN_STARTED, 0);
-				turn_degrees(360, SCAN_SPEED);
+				scan_dir *=-1;
+				turn_degrees(360*scan_dir, SCAN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;
 			case MESSAGE_HEADING:
