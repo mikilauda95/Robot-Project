@@ -13,6 +13,7 @@
 #define MOVABLE 3
 #define VIRTUAL_WALL 4
 #define WALL 5
+#define OBJECT_DROPPED 6
 #define OBSTACLE 10
 
 #define MAX_INCREMENTS 31
@@ -170,6 +171,10 @@ void message_handler(uint16_t command, int16_t value) {
 
         case MESSAGE_PRINT_MAP:
             printMap2();
+        break;
+        case MESSAGE_UPDATE_OBJECT:
+            printf("NOW I MAP THE OBJECT\n");
+            map[robot_y][robot_x]=OBJECT_DROPPED;
         break;
     }
 }

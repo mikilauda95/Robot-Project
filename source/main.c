@@ -16,6 +16,7 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 #define STATE_STOPPED 4
+#define STATE_DROP 5
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
@@ -110,6 +111,11 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_mapping, command, value);
 			}
 		break;
+		case STATE_DROP:
+            if (command == MESSAGE_DROP_COMPLETE){
+                send_message(queue_main_to_mapping, MESSAGE_UPDATE_OBJECT, 0);
+            }
+		break;
 
 		case STATE_STOPPED:
 			switch (command) {
@@ -176,10 +182,10 @@ int main() {
 
     movement_init();
 	
-	if (!bt_connect()) {
-		exit(1);
-	}
-	bt_wait_for_start();
+	/*if (!bt_connect()) {*/
+		/*exit(1);*/
+	/*}*/
+	/*bt_wait_for_start();*/
 	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
@@ -199,9 +205,12 @@ int main() {
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 
-	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	/*pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);*/
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
+
+	send_message(queue_main_to_move, MESSAGE_DROP, 0);
+	state = STATE_DROP;	
 
 	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 	state = STATE_SCANNING;	

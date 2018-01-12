@@ -8,6 +8,7 @@
 #include "ev3_tacho.h"
 #include "messages.h"
 
+#define ARM_MOTOR_PORT 67
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 68
@@ -25,6 +26,7 @@
 enum name {L, R};
 uint8_t motor[2];
 uint8_t sweep_motor;
+uint8_t arm_motor;
 
 mqd_t movement_queue_from_main, movement_queue_to_main;
 
@@ -120,21 +122,26 @@ int movement_init(){
 	ev3_search_tacho_plugged_in(LEFT_MOTOR_PORT, 0, &motor[L], 0 );
 	ev3_search_tacho_plugged_in(RIGHT_MOTOR_PORT, 0, &motor[R], 0 );
 	ev3_search_tacho_plugged_in(SWEEP_MOTOR_PORT, 0, &sweep_motor, 0 );
+	ev3_search_tacho_plugged_in(ARM_MOTOR_PORT, 0, &arm_motor, 0 );
 
 	/* Decide how the motors should behave when stopping.
 	We have the alternatives COAST, BRAKE, and HOLD. They result in harder/softer breaking */
 	set_tacho_stop_action_inx( motor[L], TACHO_BRAKE );
 	set_tacho_stop_action_inx( motor[R], TACHO_BRAKE );
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
+	set_tacho_stop_action_inx( arm_motor, TACHO_BRAKE );
 
 	set_tacho_speed_sp(motor[L], RUN_SPEED );
 	set_tacho_speed_sp(motor[R], RUN_SPEED );
 	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
+	set_tacho_speed_sp(arm_motor, RUN_SPEED );
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = 50.0;
-	coord.y = 50.0;
+	/*coord.x = 50.0;*/
+	/*coord.y = 50.0;*/
+	coord.x = 60.0;
+	coord.y = 30.0;
 
 	return 0;
 }
@@ -177,7 +184,9 @@ void turn_degrees(float angle, int speed) {
 	set_tacho_speed_sp( motor[R], turn_speed );
 	set_tacho_position_sp( motor[L], -angle * DEGREE_TO_LIN );
 	set_tacho_position_sp( motor[R], angle * DEGREE_TO_LIN );
-	multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+	/*multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );*/
+    set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
+    set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
 	
 	int spd = 0;
 	// First we wait until the motor starts spinning
@@ -204,12 +213,16 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 	if (delta > 0) {
 		set_tacho_speed_sp( motor[L], angle_speed );
 		set_tacho_speed_sp( motor[R], -angle_speed );
-		multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
+		/*multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);*/
+        set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
+        set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	}
 	else {
 		set_tacho_speed_sp( motor[L], -angle_speed );
 		set_tacho_speed_sp( motor[R], angle_speed );
-		multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);
+		/*multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);*/
+        set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
+        set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	}
 
 	for (;;) {
@@ -233,6 +246,19 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 	
 }
 
+void drop_object()
+{
+    printf("DROPPING\n");
+    set_tacho_position_sp(arm_motor, -90);
+    set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
+    Sleep(1000);
+	set_tacho_position_sp(arm_motor, 90);
+	set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
+    Sleep(1000);
+    /*set_tacho_position(arm_motor, 180);*/
+    /*set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);*/
+    printf("END OF DROPPING\n");
+}
 
 void *movement_start(void* queues) {
 
@@ -292,6 +318,13 @@ void *movement_start(void* queues) {
 			case MESSAGE_HEADING:
 				heading = value;
 			break;
+            case MESSAGE_DROP:
+                printf("RECEIVED MESSAGE TO DROP OBJECT\n");
+                stop();
+                drop_object();
+                printf("DROP FINISHED\n");
+                send_message(movement_queue_to_main, MESSAGE_DROP_COMPLETE, 0);
+            break;
 		}
 	}
 }
