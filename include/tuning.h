@@ -5,4 +5,4 @@
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
 #define TURN_SPEED 250 
 #define SCAN_SPEED 50
-#define SWEEP_SPEED 350
+#define SWEEP_SPEED 350 // Speed of the motor that sweeps the US-sensor
