@@ -12,9 +12,6 @@
 #include "messages.h"
 #include "tuning.h"
 
-#define OBJECT_DROPPED 6
-#define VER_WALL 7
-#define HOR_WALL 8
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
@@ -29,6 +26,8 @@ char *printlist = "* r'?X+|_?123456789ABCDEFGHIJKLMNOPQRSTUVW";
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
+
+int obj_x, obj_y;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
@@ -124,31 +123,6 @@ int distance_from_unmapped_tile(float ang) {
 	}
 }
 
-/*void readjust_to_walls(int x, int y, int distance){*/
-    /*int i;*/
-    /*//calibrate to vertical walls*/
-    /*for (i = 0; i < 4; ++i) {*/
-        /*if (map[y][x+2-i]==VER_WALL) {*/
-            /*if (distance<min_distance_x) {*/
-                /*printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, 2-i);*/
-                /*min_distance_x=distance;*/
-                /*correction_x=2-i;*/
-            /*}*/
-        /*} */
-    /*}*/
-    /*//calibrate to horizontal walls*/
-    /*for (i = 0; i < 4; ++i) {*/
-        /*if (map[y+2-i][x]==HOR_WALL) {*/
-            /*if (distance<min_distance_y) {*/
-                /*printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, 2-i);*/
-                /*min_distance_y=distance;*/
-                /*correction_y=2-i;*/
-            /*}*/
-        /*} */
-    /*}*/
-/*}*/
-
-
 void readjust_to_walls(int x, int y){
     int i;
     //calibrate to vertical walls
@@ -161,7 +135,7 @@ void readjust_to_walls(int x, int y){
         }
     } 
     //calibrate to horizontal walls
-    for (i = -1; i <= 1; ++i) {
+    for (i = -2; i <= 2; ++i) {
         if (map[y+i][x]==HOR_WALL) {
             printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
             printf("Y coordinate before readjustement= %d\n", robot_y);
@@ -285,7 +259,10 @@ void message_handler(uint16_t command, int16_t value) {
         break;
         case MESSAGE_UPDATE_OBJECT:
             printf("NOW I MAP THE OBJECT\n");
-            map[robot_y][robot_x]=OBJECT_DROPPED;
+            obj_x=(int)(robot_x/TILE_SIZE);
+            obj_y=(int)(robot_y/TILE_SIZE);
+            printf("OK I AM MAPPING THE RELEASED OBJECT at %d %d\n", obj_x, obj_y);
+            map[obj_y-4][obj_x]=OBJECT_DROPPED;
         break;
     }
 }

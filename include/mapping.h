@@ -4,6 +4,11 @@
 #define MOVABLE 3
 #define VIRTUAL_WALL 4
 #define WALL 5
+
+#define OBJECT_DROPPED 6
+#define VER_WALL 7
+#define HOR_WALL 8
+
 #define OBSTACLE 10
 
 #define MAP_SIZE_X 80

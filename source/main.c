@@ -113,8 +113,12 @@ void event_handler(uint16_t command, int16_t value) {
 			}
 		break;
 		case STATE_DROP:
+            printf("HI I AM IN CASE STATE DROP\n");
             if (command == MESSAGE_DROP_COMPLETE){
+                printf("DROP COMPLETE RECEIVED\n");
                 send_message(queue_main_to_mapping, MESSAGE_UPDATE_OBJECT, 0);
+                send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+                state = STATE_SCANNING;	
             }
 		break;
 
@@ -213,8 +217,6 @@ int main() {
 	send_message(queue_main_to_move, MESSAGE_DROP, 0);
 	state = STATE_DROP;	
 
-	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-	state = STATE_SCANNING;	
 
 	uint16_t command;
 	int16_t value;
