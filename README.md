@@ -16,7 +16,12 @@ $ cd Robot-Project && git clone https://github.com/in4lio/ev3dev-c
 	* https://www.acmesystems.it/arm9_toolchain for Ubuntu-based systems (including Windows Subsystem for Linux)
 	* https://packages.debian.org/stretch/gcc-arm-linux-gnueabi for Debian based systems
 
-4. If everything went well, running `make` in the Robot-Project folder should compile the project without errors and yield an executable called `main` in the Robot-Project directory.
+4. Now, we also need to install some packages for working with bluetooth and the server. 
+```
+$ sudo apt install libbluetooth-dev libpng-dev libsdl2-dev libglew-dev
+```
+
+5. If everything went well, running `make` in the Robot-Project folder should compile the project without errors and yield an executable called `main` in the Robot-Project directory.
 
 ## Connecting to the robot
 We can connect to the robot using SSH. This requires that the robot is either connected to the same wifi as your computer (using a wifi USB dongle) or connected directly to the computer using a USB cable. Either way, take note of the IP address of the robot which is displayed at the top of the ev3 brick's embedded display. Connecting is done by the following command, omitting the angle brackets:
