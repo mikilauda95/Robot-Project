@@ -8,21 +8,8 @@
 #include "ev3.h"
 #include "ev3_tacho.h"
 #include "messages.h"
-<<<<<<< HEAD
-
-#define ARM_MOTOR_PORT 67
-#define SWEEP_MOTOR_PORT 65
-#define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 68
-#define RUN_SPEED 350 // Max is 1050
-#define ANG_SPEED 250 // Wheel speed when turning
-#define SCAN_SPEED 50
-#define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
-#define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
-#define WHEEL_RADIUS 2.7
-=======
 #include "tuning.h"
->>>>>>> origin
+
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -134,28 +121,12 @@ int movement_init(){
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 	set_tacho_stop_action_inx( arm_motor, TACHO_BRAKE );
 
-<<<<<<< HEAD
 	set_tacho_speed_sp(motor[L], RUN_SPEED );
 	set_tacho_speed_sp(motor[R], RUN_SPEED );
 	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
 	set_tacho_speed_sp(arm_motor, RUN_SPEED );
-	
-	f = fopen("positions.txt", "w");
-
-	/*coord.x = 50.0;*/
-	/*coord.y = 50.0;*/
-	coord.x = 60.0;
-	coord.y = 30.0;
-=======
-	set_tacho_speed_sp(motor[L], FORWARD_SPEED );
-	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
-	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
-	
-	f = fopen("positions.txt", "w");
-
 	coord.x = ROBOT_START_X/10;
 	coord.y = ROBOT_START_Y/10;
->>>>>>> origin
 
 	return 0;
 }

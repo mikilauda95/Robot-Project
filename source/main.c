@@ -183,19 +183,10 @@ void  INThandler() {
 int main() {
 
     movement_init();
-<<<<<<< HEAD
 	/*if (!bt_connect()) {*/
 		/*exit(1);*/
 	/*}*/
 	/*bt_wait_for_start();*/
-
-=======
-
-	if (!bt_connect()) {
-		exit(1);
-	}
-	bt_wait_for_start();
->>>>>>> origin
 	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
