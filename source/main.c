@@ -10,6 +10,7 @@
 #include "sensors.h"
 #include "bt_client.h"
 #include "mapping.h"
+#include "tuning.h"
 
 #define Sleep(msec) usleep((msec)*1000)
 #define STATE_TURNING 1
@@ -23,7 +24,7 @@ mqd_t queue_sensors_to_main;
 mqd_t queue_main_to_mapping, queue_mapping_to_main;
 
 pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
-int target_heading = 90; // Start facing forward
+int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
 
@@ -91,7 +92,7 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 				state = STATE_STOPPED;
-			} else if (command == MESSAGE_FORWARD_COMPLETE) {
+			} else if (command == MESSAGE_REACHED_DEST) {
 				printf("Main: stop. Reason: reached target distance\n");
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
@@ -166,6 +167,7 @@ void  INThandler() {
 	mq_unlink("/main_to_mapping");
 	mq_unlink("/mapping_to_main");
 
+
 	pthread_cancel(movement_thread);
 	pthread_cancel(bluetooth_thread);
 	pthread_cancel(mapping_thread);
@@ -175,12 +177,12 @@ void  INThandler() {
 int main() {
 
     movement_init();
-	
+/*
 	if (!bt_connect()) {
 		exit(1);
 	}
 	bt_wait_for_start();
-	
+*/	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
 	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
@@ -199,7 +201,7 @@ int main() {
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 
-	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
