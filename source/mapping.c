@@ -7,13 +7,13 @@
 
 #include "messages.h"
 
+#define MAX_STRENGTH 100
 #define UNMAPPED 0
-#define EMPTY 1
-#define ROBOT_POSITION 2
-#define MOVABLE 3
-#define VIRTUAL_WALL 4
-#define WALL 5
-#define OBSTACLE 10
+#define ROBOT_POSITION 101
+#define MOVABLE 102
+#define VIRTUAL_WALL 103
+#define WALL 104
+
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
@@ -80,8 +80,8 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
-        } else if (map[y][x] > OBSTACLE) {
-            map[y][x] --; // Decrement Obstacles we cannot find anymore
+        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
+            map[y][x] --; // Decrement to indicate strength of emptyness
         } else if (map[y][x] == UNMAPPED) {
             map[y][x] = EMPTY;
         }
@@ -92,11 +92,9 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
-            map[y][x] = OBSTACLE;
-        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
-            map[y][x]++; // Increment Obstacles we have found before
-        }
+        if ( map[y][x] < MAX_STRENGTH ) {
+            map[y][x] ++; // Increment to indicate strengt of obstacle
+        } 
     }
 }
 
