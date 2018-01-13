@@ -145,10 +145,13 @@ void message_handler(uint16_t command, int16_t value) {
                 int x = (int)(robot_x/TILE_SIZE + 0.5);
                 int y = (int)(robot_y/TILE_SIZE + 0.5);
                 map[y][x] = ROBOT_POSITION;
-                map[y+1][x] = EMPTY;
-                map[y-1][x] = EMPTY;
-                map[y][x+1] = EMPTY;
-                map[y][x-1] = EMPTY;
+                for (int i = x-1; i < x+1; i++) {
+                    for (int j = y-1; j < y+1; j++) {
+                        if (map[j][i] == UNMAPPED) {
+                            map[j][i] = EMPTY;
+                        }
+                    }
+                }
                 
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
