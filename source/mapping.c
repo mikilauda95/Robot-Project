@@ -5,30 +5,18 @@
 #include <math.h>
 #include <time.h>
 
+#include "mapping.h"
 #include "messages.h"
-
-#define UNMAPPED 0
-#define EMPTY 1
-#define ROBOT_POSITION 2
-#define MOVABLE 3
-#define VIRTUAL_WALL 4
-#define WALL 5
-#define OBSTACLE 10
+#include "tuning.h"
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
 char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
-#define MAP_SIZE_X 80
-#define MAP_SIZE_Y 80
-#define MAX_DIST 500 // Max distance in mm
-#define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
-#define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
+uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
-int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
-
-int robot_x; 
-int robot_y;
+int robot_x = ROBOT_START_X;
+int robot_y = ROBOT_START_Y;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
@@ -58,7 +46,7 @@ void printMap2(){
 
 int distance_from_unmapped_tile(float ang) {
     int x, y;
-    for (int dist = 0; dist < MAX_DIST * 5; dist += TILE_SIZE) {
+    for (int dist = 0; dist < MAX_SCAN_DIST * 5; dist += TILE_SIZE) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
@@ -73,7 +61,7 @@ int distance_from_unmapped_tile(float ang) {
 
 void update_map(float ang, int dist){
     int x, y;   
-    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
+    for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
         y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
@@ -86,7 +74,7 @@ void update_map(float ang, int dist){
             map[y][x] = EMPTY;
         }
     }
-    if (dist < MAX_DIST) {
+    if (dist < MAX_SCAN_DIST) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
@@ -125,7 +113,7 @@ void message_handler(uint16_t command, int16_t value) {
             printf("done with for loop. angle is now %d\n", target_angle);
             if (target_angle == -1) {
                 target_angle = (rand() % 8) * 45;
-                target_distance = MAX_DIST;
+                target_distance = MAX_SCAN_DIST;
                 printf("\tNo suitable angles found. Generated random: %d...\n", target_angle);
             } else {
                 printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);

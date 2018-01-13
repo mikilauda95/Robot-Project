@@ -3,7 +3,9 @@
 #include <unistd.h>
 #include "ev3.h"
 #include "ev3_sensor.h"
+
 #include "messages.h"
+#include "tuning.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -37,6 +39,6 @@ void *sensors_start(void *queues){
         
         send_message(queue_sensor_to_main, MESSAGE_SONAR, (int16_t)(sonar_value + 0.5));
         send_message(queue_sensor_to_main, MESSAGE_ANGLE, (int16_t)(gyro + 0.5));
-        Sleep(40);
+        Sleep(SENSOR_UPDATE_TIME);
     }
 }
