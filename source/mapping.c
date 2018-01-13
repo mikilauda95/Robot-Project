@@ -38,9 +38,10 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            if (map[i][j] <= UNMAPPED) {
-                printf("%d", map[i][j]<-9?9:-map[i][j]);
-            } else if (map[i][j] > UNMAPPED && map[i][j] < MAX_STRENGTH) {
+            if (map[i][j] < UNMAPPED) {
+                //printf("%d", map[i][j]<-9?9:-map[i][j]);
+                printf(" ");
+            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
                 printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
             } else {
                 printf("%c", printlist[map[i][j] - 100]);
