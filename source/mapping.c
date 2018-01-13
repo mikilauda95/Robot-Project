@@ -38,7 +38,7 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%c ", printlist[map[i][j]]);
+            printf("%c", printlist[map[i][j]]);
         }
         printf("\n");
     }

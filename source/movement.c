@@ -24,7 +24,7 @@ struct coord {
 } coord;
 int target_x, target_y, target_dist;
 // angle between robot nose and the x axis
-int heading = 90;
+int heading = START_HEADING;
 
 // true when robot is moving straight
 bool do_track_position = false;
@@ -122,8 +122,8 @@ int movement_init(){
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = 50.0;
-	coord.y = 50.0;
+	coord.x = ROBOT_START_X/10;
+	coord.y = ROBOT_START_Y/10;
 
 	return 0;
 }
