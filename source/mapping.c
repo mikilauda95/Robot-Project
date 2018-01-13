@@ -15,7 +15,7 @@ char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
-int robot_x = ROBOT_START_X; // robot start position in mm
+int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
 
 int16_t data_pair[2] = {-1, -1};
