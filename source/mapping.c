@@ -47,146 +47,186 @@ void printMap(){
 }
 
 void printMap2(){
-    // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
-        for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%c ", printlist[map[i][j]]);
-        }
-        printf("\n");
-    }
+	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
+	for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+		for (int j=0; j<MAP_SIZE_X; j++){
+			printf("%c ", printlist[map[i][j]]);
+		}
+		printf("\n");
+	}
 }
 
-int distance_from_unmapped_tile(float ang) {
-    int x, y;
-    for (int dist = 0; dist < MAX_DIST * 5; dist += TILE_SIZE) {
-        y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+int distance_to_unmapped_tile(float ang) {
+	int x, y;
+	for (int dist = 0; dist < MAX_DIST * 5; dist += TILE_SIZE) {
+		y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+		x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-        if (map[y][x] == UNMAPPED) {
-            return dist;
-        } else if (map[y][x] != EMPTY) {
-            return -1;
-        }
+		if (map[y][x] == UNMAPPED) {
+			return dist;
+		} else if (map[y][x] != EMPTY) {
+			return -1;
+		}
 
-    }
+	}
 }
 
 void update_map(float ang, int dist){
-    int x, y;   
-    for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
-        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+	int x, y;   
+	for (int i = 0; i < (dist>MAX_DIST?MAX_DIST:dist); i+=TILE_SIZE) {
+		y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+		x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
-            // Return if a value is out of the map. No need to try the other values
-            return;
-        } else if (map[y][x] == UNMAPPED) {
-            map[y][x] = EMPTY;
-        }
-    }
-    if (dist < MAX_DIST) {
-        y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
-        if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
-            return;
-        }
-        map[y][x] = OBSTACLE;
-        fprintf(f, "%d %d\n", x, y);
-    }
+		if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
+			// Return if a value is out of the map. No need to try the other values
+			return;
+		} else if (map[y][x] == UNMAPPED) {
+			map[y][x] = EMPTY;
+		}
+	}
+	if (dist < MAX_DIST) {
+		y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+		x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+		if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
+			return;
+		}
+		map[y][x] = OBSTACLE;
+		fprintf(f, "%d %d\n", x, y);
+	}
+}
+
+void find_optimal_target(int *tgt_ang, int *tgt_dist) {
+
+	printf("searching for target angle/distance...\n");
+
+	int ang_step = 1;
+	int curr_ang, offset_ang;
+	int d;
+
+	// re = right edge, le = left edge
+	int re_offset_ang = -1;
+	int le_offset_ang = -1;
+	
+	uint8_t edges = 0xFF;
+	const uint8_t RIGHT_EDGE_MASK = 0x0F;
+	const uint8_t LEFT_EDGE_MASK = 0xF0;
+
+	bool found_clear_path = false;
+
+	for (offset_ang = 0; offset_ang < 360; offset_ang += ang_step) {
+		
+		curr_ang = (offset_ang + 90) % 360;
+		d = distance_to_unmapped_tile(curr_ang);
+		
+		edges = (edges >> 1) & 0xFF;
+		if (d == -1) {
+			edges |= (1 << 7);
+		} 
+
+		if (edges == RIGHT_EDGE_MASK) {
+			// right obj. edge found with 4 degrees of open space
+			re_offset_ang = offset_ang;
+			printf("\t found object right edge at %d degrees\n", curr_ang);
+			
+		} else if (edges == LEFT_EDGE_MASK) {
+			// left obj. edge found with 4 degrees of open space			
+			le_offset_ang = offset_ang;
+			printf("\t found object left edge at %d degrees\n", curr_ang);
+			found_clear_path = true;
+			break;
+		}	
+
+	}
+
+	if (found_clear_path) {
+		int offset_delta = re_offset_ang + 0.5 * (le_offset_ang - re_offset_ang);
+		*tgt_ang = (offset_delta + 90) % 360;
+		printf("\t -> choosing path at angle %d\n", *tgt_ang);
+	} else {
+		*tgt_ang = (rand() % 8) * 45;
+		printf("\t no path found. Random angle: %d\n", *tgt_ang);		
+	}
+
+	*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
+	printf("\t -> target distance: %d\n", *tgt_dist);
+
 }
 
 void message_handler(uint16_t command, int16_t value) {
-    
-    switch (command) {
-        case MESSAGE_SCAN:
-        break;
+	
+	switch (command) {
+		case MESSAGE_SCAN:
+		break;
 
-        case MESSAGE_SCAN_COMPLETE: {
-            int16_t target_angle = -1;
-            int16_t target_distance = -1;
-            int16_t angle_increment = 45;
+		case MESSAGE_SCAN_COMPLETE: {
+			int target_angle, target_distance;
+			printf("SCAN complete. Searching for optimal target\n");
+			find_optimal_target(&target_angle, &target_distance);
+			printf("Finished.\n");
+			
+			send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, target_distance);
+			send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
 
-            printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
-            for (int angle = 0; angle < 360; angle += angle_increment) {
-                
-                int tmp = (angle + 90) % 360;
-                int d = distance_from_unmapped_tile(tmp);
-                if (d > 0) {
-                    target_angle = tmp;
-                    target_distance = d;
-                    break;
-                }
-            }
-            printf("done with for loop. angle is now %d\n", target_angle);
-            if (target_angle == -1) {
-                target_angle = (rand() % 8) * 45;
-                target_distance = MAX_DIST;
-                printf("\tNo suitable angles found. Generated random: %d...\n", target_angle);
-            } else {
-                printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);
-            }
-            send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, target_distance);
-            send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
-        }
-        break;
+		}
+		break;
 
-        case MESSAGE_POS_X:
-        case MESSAGE_POS_Y:
-            // These lines are to make sure that we update both positions at the same time.
-            pos_pair[command==MESSAGE_POS_X?0:1] = value;
-            if (pos_pair[0] != -1 && pos_pair[1] != -1) {
-                robot_x = 10 * pos_pair[0];
-                robot_y = 10 * pos_pair[1];
-                int x = (int)(robot_x/TILE_SIZE + 0.5);
-                int y = (int)(robot_y/TILE_SIZE + 0.5);
-                map[y][x] = ROBOT_POSITION;
-                map[y+1][x] = EMPTY;
-                map[y-1][x] = EMPTY;
-                map[y][x+1] = EMPTY;
-                map[y][x-1] = EMPTY;
-                
-                pos_pair[0] = -1;
-                pos_pair[1] = -1;
-            }
-        break;
+		case MESSAGE_POS_X:
+		case MESSAGE_POS_Y:
+			// These lines are to make sure that we update both positions at the same time.
+			pos_pair[command==MESSAGE_POS_X?0:1] = value;
+			if (pos_pair[0] != -1 && pos_pair[1] != -1) {
+				robot_x = 10 * pos_pair[0];
+				robot_y = 10 * pos_pair[1];
+				int x = (int)(robot_x/TILE_SIZE + 0.5);
+				int y = (int)(robot_y/TILE_SIZE + 0.5);
+				map[y][x] = ROBOT_POSITION;
+				map[y+1][x] = EMPTY;
+				map[y-1][x] = EMPTY;
+				map[y][x+1] = EMPTY;
+				map[y][x-1] = EMPTY;
+				
+				pos_pair[0] = -1;
+				pos_pair[1] = -1;
+			}
+		break;
 
-        case MESSAGE_ANGLE:
-        case MESSAGE_SONAR:
-            // These lines are to make sure that we update both angle and distance at the same time.
-            data_pair[command==MESSAGE_ANGLE?0:1] = value;
-            if (data_pair[0] != -1 && data_pair[1] != -1) {
-                update_map((float)data_pair[0], data_pair[1]);
+		case MESSAGE_ANGLE:
+		case MESSAGE_SONAR:
+			// These lines are to make sure that we update both angle and distance at the same time.
+			data_pair[command==MESSAGE_ANGLE?0:1] = value;
+			if (data_pair[0] != -1 && data_pair[1] != -1) {
+				update_map((float)data_pair[0], data_pair[1]);
 
-                data_pair[0] = -1;
-                data_pair[1] = -1;
-            }
+				data_pair[0] = -1;
+				data_pair[1] = -1;
+			}
 
-        break;
+		break;
 
-        case MESSAGE_PRINT_MAP:
-            printMap2();
-        break;
-    }
+		case MESSAGE_PRINT_MAP:
+			printMap2();
+		break;
+	}
 }
 
 void *mapping_start(void* queues){
-    srand(time(NULL));
+	srand(time(NULL));
 
-    mqd_t* tmp = (mqd_t*)queues;
+	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
-    queue_mapping_to_main = tmp[1];
-    f = fopen("objects.txt", "w");
+	queue_mapping_to_main = tmp[1];
+	f = fopen("objects.txt", "w");
 
-    uint16_t command;
-    int16_t value;
+	uint16_t command;
+	int16_t value;
 
-    // hard-code the virtual fence
-    for (int x = 0; x < MAP_SIZE_X; x++) {
-        map[0][x] = OBSTACLE;
-    }
+	// hard-code the virtual fence
+	for (int x = 0; x < MAP_SIZE_X; x++) {
+		map[0][x] = OBSTACLE;
+	}
 
-    while(1) {
-        get_message(queue_from_main, &command, &value);
-        message_handler(command, value);
-    }
+	while(1) {
+		get_message(queue_from_main, &command, &value);
+		message_handler(command, value);
+	}
 }
