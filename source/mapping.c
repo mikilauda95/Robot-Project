@@ -128,8 +128,8 @@ void message_handler(uint16_t command, int16_t value) {
             // These lines are to make sure that we update both positions at the same time.
             pos_pair[command==MESSAGE_POS_X?0:1] = value;
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
-                robot_x = 10 * pos_pair[0];
-                robot_y = 10 * pos_pair[1];
+                robot_x = pos_pair[0];
+                robot_y = pos_pair[1];
                 int x = (int)(robot_x/TILE_SIZE + 0.5);
                 int y = (int)(robot_y/TILE_SIZE + 0.5);
                 map[y][x] = ROBOT_POSITION;
@@ -151,8 +151,8 @@ void message_handler(uint16_t command, int16_t value) {
             // These lines are to make sure that we update both angle and distance at the same time.
             data_pair[command==MESSAGE_ANGLE?0:1] = value;
             if (data_pair[0] != -1 && data_pair[1] != -1) {
-                update_map((float)data_pair[0], data_pair[1]);
-
+                // We have received the angle in centidegrees, therefore we divide by 10.
+                update_map(data_pair[0]/10.0, data_pair[1]);
                 data_pair[0] = -1;
                 data_pair[1] = -1;
             }
