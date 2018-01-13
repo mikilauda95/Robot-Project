@@ -9,7 +9,9 @@
 #include "messages.h"
 #include "tuning.h"
 
-char *printlist = "* X'???r??";
+#define MAX_INCREMENTS 31
+// 1-W indicates objects with an increasing level of certainty
+char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
@@ -22,13 +24,11 @@ int16_t pos_pair[2] = {-1, -1};
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
 
-FILE * f;
-
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%d", map[i][j]);
+          printf("%d", map[i][j]);
         }
         printf("\n");
     }
@@ -66,8 +66,10 @@ void update_map(float ang, int dist){
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
-            // Return if a value is out of the map. No need to try the other values
+            // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
+        } else if (map[y][x] > OBSTACLE) {
+            map[y][x] --; // Decrement Obstacles we cannot find anymore
         } else if (map[y][x] == UNMAPPED) {
             map[y][x] = EMPTY;
         }
@@ -78,8 +80,11 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        map[y][x] = OBSTACLE;
-        fprintf(f, "%d %d\n", x, y);
+        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++; // Increment Obstacles we have found before
+        }
     }
 }
 
@@ -163,7 +168,6 @@ void *mapping_start(void* queues){
     mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
     queue_mapping_to_main = tmp[1];
-    f = fopen("objects.txt", "w");
 
     uint16_t command;
     int16_t value;

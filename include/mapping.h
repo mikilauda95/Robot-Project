@@ -1,10 +1,10 @@
 #define UNMAPPED 0
 #define EMPTY 1
-#define OBSTACLE 2
+#define ROBOT_POSITION 2
 #define MOVABLE 3
 #define VIRTUAL_WALL 4
 #define WALL 5
-#define ROBOT_POSITION 7
+#define OBSTACLE 10
 
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80

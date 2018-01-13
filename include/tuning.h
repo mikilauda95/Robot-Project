@@ -1,11 +1,11 @@
-#define ROBOT_START_X 400 // Robot start position in mm
-#define ROBOT_START_Y 100
+#define ROBOT_START_X 600 // Robot start position in mm
+#define ROBOT_START_Y 600
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
 
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
 #define TURN_SPEED 250 
-#define SCAN_SPEED 200
+#define SCAN_SPEED 100
 #define SWEEP_SPEED 350 // Speed of the motor that sweeps the US-sensor
 #define DEGREE_TO_LIN 2.5 // Factor for use in turn_degrees. Seems to depend on battery voltage
 #define SWEEP_MOTOR_PORT 65

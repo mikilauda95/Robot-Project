@@ -22,7 +22,8 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_x, target_y, target_dist;
+int target_dist;
+float current_dist;
 // angle between robot nose and the x axis
 int heading = START_HEADING;
 
@@ -42,14 +43,14 @@ void update_position() {
 	get_tacho_position(motor[L], &lpos);
 	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	current_dist += distance;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
-	coord.y += distance * sin(heading*M_PI/180); 
-	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
+	coord.y += distance * sin(heading*M_PI/180);
+	// If we reached target within 5cm margin
+	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
 		send_message(movement_queue_to_main, MESSAGE_REACHED_DEST, 0);
-		target_x = -1;
-		target_y = -1;
 	}
 }
 
@@ -236,10 +237,10 @@ void *movement_start(void* queues) {
 
 	pthread_t position_sender_thread;
 	pthread_t sonar_sweeper_thread;
+	int scan_dir = -1;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
 	while(1) {
-	   
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
@@ -257,8 +258,6 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
-				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
@@ -268,15 +267,16 @@ void *movement_start(void* queues) {
 			case MESSAGE_STOP:
 				stop();
 				// Forget old target when stopping
-				target_x = -1;
-				target_y = -1;
+				target_dist = -10;
+				current_dist = 0;
 			break;
 
 			case MESSAGE_SCAN:
 				stop();
 				Sleep(500);			
 				send_message(movement_queue_to_main, MESSAGE_SCAN_STARTED, 0);
-				turn_degrees(360, SCAN_SPEED);
+				scan_dir *=-1;
+				turn_degrees(360*scan_dir, SCAN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;
 			case MESSAGE_HEADING:
