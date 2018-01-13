@@ -26,9 +26,8 @@
 #define MESSAGE_DEST_ANGLE 31
 #define MESSAGE_TARGET_ANGLE 32
 #define MESSAGE_TARGET_DISTANCE 33
+#define MESSAGE_SEND_MAP 34
 
-#define MESSAGE_MAP_X_DIM 41
-#define MESSAGE_MAP_Y_DIM 42
 #define MESSAGE_MAP_POINT 43
 
 mqd_t init_queue (char *mq_name, int open_flags);

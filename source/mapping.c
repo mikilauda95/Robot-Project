@@ -4,10 +4,13 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "mapping.h"
 #include "messages.h"
 #include "tuning.h"
+
+#define Sleep(msec) usleep((msec)*1000)
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
@@ -21,8 +24,9 @@ int robot_y = ROBOT_START_Y;
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
 
-mqd_t queue_from_main;
-mqd_t queue_mapping_to_main;
+mqd_t queue_from_main, queue_mapping_to_main, queue_mapping_to_bt;
+pthread_t map_send_thread;
+
 
 void printMap(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
@@ -43,6 +47,16 @@ void printMap2(){
         printf("\n");
     }
 
+}
+
+void* map_sender(void* what){ 
+	printf("map sender thread start\n");
+	for (int xi = 0; xi < 80; xi++) {
+		for (int yi = 0; yi < 80; yi++) {
+			send_message(queue_mapping_to_bt, MESSAGE_MAP_POINT, map[yi][xi]);
+		}
+	}
+	printf("map sender thread finished\n");
 }
 
 int distance_to_unmapped_tile(float ang) {
@@ -123,7 +137,7 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 			printf("\t found object right edge at %d degrees\n", curr_ang);
 			
 		} else if (edges == LEFT_EDGE_MASK) {
-			// left obj. edge found with 4 degrees of open space			
+			// left obj. edge found with 4 degrees of open space
 			le_offset_ang = offset_ang;
 			printf("\t found object left edge at %d degrees\n", curr_ang);
 			found_clear_path = true;
@@ -162,6 +176,10 @@ void message_handler(uint16_t command, int16_t value) {
 			send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
 
 		}
+		break;
+
+		case MESSAGE_SEND_MAP:
+		pthread_create(&map_send_thread, NULL, map_sender, NULL);
 		break;
 
 		case MESSAGE_POS_X:
@@ -213,6 +231,7 @@ void *mapping_start(void* queues){
 	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
     queue_mapping_to_main = tmp[1];
+    queue_mapping_to_bt = tmp[2];
 
 	uint16_t command;
 	int16_t value;

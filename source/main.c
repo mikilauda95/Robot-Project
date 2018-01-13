@@ -17,6 +17,8 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 #define STATE_STOPPED 4
+#define STATE_SENDING_MAP 5
+
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
@@ -28,6 +30,9 @@ int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
 
+int scan_count = 0;
+
+
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
 	static int current_queue_index = 0;
@@ -38,7 +43,8 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 		queue_bt_to_main,
 		queue_mapping_to_main
 	};
-	uint8_t n_queues = sizeof(read_queues) / sizeof(mqd_t);
+	static uint8_t n_queues = sizeof(read_queues) / sizeof(mqd_t);
+
 	current_queue_index %= n_queues;
 
 	for(;;) {
@@ -102,10 +108,19 @@ void event_handler(uint16_t command, int16_t value) {
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
+				scan_count++;
+
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+
+				if(scan_count == 10) {
+					printf("Scan cound %d, sending map...\n", scan_count);
+					send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
+					state = STATE_SENDING_MAP;
+				}
 				state = STATE_STOPPED;
+
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
@@ -137,6 +152,11 @@ void event_handler(uint16_t command, int16_t value) {
 				break;
 			}
 		break;
+
+		case STATE_SENDING_MAP:
+			// do nothing. this is the last thing we do.
+		break;
+
 	}
 }
 
@@ -195,7 +215,7 @@ int main() {
 	mqd_t bt_queues[] = {queue_main_to_bt, queue_bt_to_main};
 	mqd_t movement_queues[] = {queue_main_to_move, queue_move_to_main};
 	mqd_t sensor_queues[] = {queue_sensors_to_main};
-	mqd_t mapping_queues[] = {queue_main_to_mapping, queue_mapping_to_main};
+	mqd_t mapping_queues[] = {queue_main_to_mapping, queue_mapping_to_main, queue_main_to_bt};
 
 	pthread_create(&sensors_thread, NULL, sensors_start, (void*)sensor_queues);
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
@@ -217,3 +237,12 @@ int main() {
 		
 	}
 }
+
+
+/*
+
+TODO: 
+when unable to find angle, go in the direction of the longest line of sight. Maybe only
+move half of what you can see?
+
+*/

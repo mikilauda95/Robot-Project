@@ -12,6 +12,7 @@
 #include <bluetooth/rfcomm.h>
 
 #include "bt_client.h"
+#include "tuning.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -153,20 +154,15 @@ void* bt_client(void *queues){
 				pos_y = value;
 				should_send_position = true;
 			break;
-			case MESSAGE_MAP_X_DIM:
-				map_x_dim = value;
-			break;
-			case MESSAGE_MAP_Y_DIM:
-				map_y_dim = value;
 			break;
 			case MESSAGE_MAP_POINT: {
 				_send_mapdata(map_current_x, map_current_y, 255 * value, 255 * value, 255 * value);
 				map_current_x++;
-				if (map_current_x > map_x_dim - 1) {
+				if (map_current_x > MAP_SIZE_X - 1) {
 					map_current_x = 0;
 					map_current_y++;
 				}
-				if (map_current_y == map_y_dim - 1) {
+				if (map_current_y == MAP_SIZE_Y - 1) {
 					_send_mapdone();
 					map_current_x = 0;
 					map_current_y = 0;
