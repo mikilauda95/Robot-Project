@@ -11,6 +11,7 @@
 #include "tuning.h"
 
 
+
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 enum name {L, R};
@@ -121,10 +122,10 @@ int movement_init(){
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 	set_tacho_stop_action_inx( arm_motor, TACHO_BRAKE );
 
-	set_tacho_speed_sp(motor[L], RUN_SPEED );
-	set_tacho_speed_sp(motor[R], RUN_SPEED );
-	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
-	set_tacho_speed_sp(arm_motor, RUN_SPEED );
+	set_tacho_speed_sp(motor[L], FORWARD_SPEED);
+	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
+	set_tacho_speed_sp(sweep_motor, FORWARD_SPEED );
+	set_tacho_speed_sp(arm_motor, FORWARD_SPEED );
 	coord.x = ROBOT_START_X/10;
 	coord.y = ROBOT_START_Y/10;
 
