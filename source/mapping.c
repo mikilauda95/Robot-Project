@@ -1,4 +1,5 @@
 //TODO: transform the update function so that it takes as arguments x and y and just update the map with the values corrected
+//
 #include <stdio.h>
 
 #include <stdlib.h>
@@ -22,7 +23,7 @@
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = "* r'?X?|_?123456789ABCDEFGHIJKLMNOPQRSTUVW";
+char *printlist = "* r'?X+|_?123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 #define HOR_SIZE 24
 #define VER_SIZE 40
@@ -34,6 +35,8 @@ char *printlist = "* r'?X?|_?123456789ABCDEFGHIJKLMNOPQRSTUVW";
 #define MAX_DIST 400 // Max distance in mm
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
+
+#define MAX_DELTA_ANG 4
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
@@ -159,21 +162,24 @@ int distance_from_unmapped_tile(float ang) {
 /*}*/
 
 
-void readjust_to_walls(int x, int y, int distance){
+void readjust_to_walls(int x, int y){
     int i;
     //calibrate to vertical walls
-    for (i = 0; i < 4; ++i) {
+    for (i = -1; i <= 1; ++i) {
         if (map[y][x+2-i]==VER_WALL) {
-            printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, 2-i);
-            robot_x =2-i;
+            printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, i);
+            printf("X coordinate before readjustement= %d\n", robot_x);
+            robot_x +=(i)*50;
+            printf("X coordinate after readjustement= %d\n", robot_x);
         }
     } 
     //calibrate to horizontal walls
-    for (i = 0; i < 4; ++i) {
-        if (map[y+2-i][x]==HOR_WALL) {
-            printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, 2-i);
-            min_distance_y=distance;
-            robot_y=2-i;
+    for (i = -1; i <= 1; ++i) {
+        if (map[y+i][x]==HOR_WALL) {
+            printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
+            printf("Y coordinate before readjustement= %d\n", robot_y);
+            robot_y+=(i)*50;
+            printf("Y coordinate after readjustement= %d\n", robot_y);
         }
     }
 }
@@ -196,8 +202,10 @@ void update_map(float ang, int dist){
         }
     }
     if (dist < MAX_DIST) {
-        //it uses global variables that need to be reset after the scanning
-        readjust_to_walls(x,y, dist);
+        //only recalibrate when it is almost perpendicular to the wall for the first 5 centimeters
+        if (abs(ang-90)<MAX_DELTA_ANG||abs(ang-180)<MAX_DELTA_ANG||abs(ang-270)<MAX_DELTA_ANG||ang<(MAX_DELTA_ANG/2)||(360-ang<MAX_DELTA_ANG/2)) {
+            readjust_to_walls(x,y);
+        }
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
