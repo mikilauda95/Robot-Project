@@ -4,23 +4,13 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "movement.h"
 #include "ev3.h"
 #include "ev3_tacho.h"
 #include "messages.h"
-
-#define SWEEP_MOTOR_PORT 65
-#define LEFT_MOTOR_PORT 66
-#define RIGHT_MOTOR_PORT 67
-#define RUN_SPEED 350 // Max is 1050
-#define ANG_SPEED 250 // Wheel speed when turning
-#define SCAN_SPEED 50
-#define DEGREE_TO_LIN 2.3 // Seems to depend on battery voltage
-#define COUNT_PER_ROT 360 // result of get_tacho_count_per_rot
-#define WHEEL_RADIUS 2.7
+#include "tuning.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-
-#define POS_CALC_PERIOD_MS 10
 
 enum name {L, R};
 uint8_t motor[2];
@@ -32,9 +22,10 @@ struct coord {
 	float x;
 	float y;
 } coord;
-int target_x, target_y, target_dist;
+int target_dist;
+float current_dist;
 // angle between robot nose and the x axis
-int heading = 90;
+int heading = START_HEADING;
 
 // true when robot is moving straight
 bool do_track_position = false;
@@ -52,14 +43,14 @@ void update_position() {
 	get_tacho_position(motor[L], &lpos);
 	float distance = (((lpos-prev_l_pos)+(rpos-prev_r_pos))/2);
 	distance = (distance/COUNT_PER_ROT) * 2*M_PI*WHEEL_RADIUS;
+	current_dist += distance;
 	prev_l_pos = lpos;
 	prev_r_pos = rpos;
 	coord.x += distance * cos(heading*M_PI/180);
-	coord.y += distance * sin(heading*M_PI/180); 
-	if ((int)(coord.x+0.5) == target_x && (int)(coord.y+0.5) == target_y) {
-		send_message(movement_queue_to_main, MESSAGE_FORWARD_COMPLETE, 0);
-		target_x = -1;
-		target_y = -1;
+	coord.y += distance * sin(heading*M_PI/180);
+	// If we reached target within 5cm margin
+	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
+		send_message(movement_queue_to_main, MESSAGE_REACHED_DEST, 0);
 	}
 }
 
@@ -126,14 +117,14 @@ int movement_init(){
 	set_tacho_stop_action_inx( motor[R], TACHO_BRAKE );
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 
-	set_tacho_speed_sp(motor[L], RUN_SPEED );
-	set_tacho_speed_sp(motor[R], RUN_SPEED );
-	set_tacho_speed_sp(sweep_motor, RUN_SPEED );
+	set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
+	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = 50.0;
-	coord.y = 50.0;
+	coord.x = ROBOT_START_X/10;
+	coord.y = ROBOT_START_Y/10;
 
 	return 0;
 }
@@ -149,8 +140,8 @@ void stop(){
 void forward(){
 	do_track_position = true;
 	do_sweep_sonar = true;
-    set_tacho_speed_sp(motor[L], RUN_SPEED );
-    set_tacho_speed_sp(motor[R], RUN_SPEED );
+    set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+    set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
 	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
 }
@@ -158,8 +149,8 @@ void forward2(int distance){
 	do_track_position = true;
 	do_sweep_sonar = true;
 	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
-    set_tacho_speed_sp(motor[L], RUN_SPEED );
-    set_tacho_speed_sp(motor[R], RUN_SPEED );
+    set_tacho_speed_sp(motor[L], FORWARD_SPEED );
+    set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_position_sp(motor[L], tics);
 	set_tacho_position_sp(motor[R], tics);
 	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
@@ -246,10 +237,10 @@ void *movement_start(void* queues) {
 
 	pthread_t position_sender_thread;
 	pthread_t sonar_sweeper_thread;
+	int scan_dir = -1;
 	pthread_create(&position_sender_thread, NULL, position_sender, (void*)&movement_queue_to_main);
 	pthread_create(&sonar_sweeper_thread, NULL, sonar_sweeper, NULL);
 	while(1) {
-	   
 		uint16_t command;
 		int16_t value;
 		get_message(movement_queue_from_main, &command, &value);
@@ -257,7 +248,7 @@ void *movement_start(void* queues) {
 			case MESSAGE_TURN_DEGREES:
 				stop();
 				Sleep(150);
-				turn_degrees(value, ANG_SPEED);
+				turn_degrees(value, TURN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_TURN_COMPLETE, 0);
 				// set position to 0 after a turn. It's important that motors are not turning when this is done
 				set_tacho_position(motor[L], 0);
@@ -267,8 +258,6 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				target_x = (coord.x + (target_dist * cos(heading*M_PI/180))+0.5);
-				target_y = (coord.y + (target_dist * sin(heading*M_PI/180))+0.5);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
@@ -278,15 +267,16 @@ void *movement_start(void* queues) {
 			case MESSAGE_STOP:
 				stop();
 				// Forget old target when stopping
-				target_x = -1;
-				target_y = -1;
+				target_dist = -10;
+				current_dist = 0;
 			break;
 
 			case MESSAGE_SCAN:
 				stop();
 				Sleep(500);			
 				send_message(movement_queue_to_main, MESSAGE_SCAN_STARTED, 0);
-				turn_degrees(360, SCAN_SPEED);
+				scan_dir *=-1;
+				turn_degrees(360*scan_dir, SCAN_SPEED);
 				send_message(movement_queue_to_main, MESSAGE_SCAN_COMPLETE, 0);
 			break;
 			case MESSAGE_HEADING:

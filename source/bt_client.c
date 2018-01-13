@@ -14,7 +14,6 @@
 #include "bt_client.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-#define BT_MSG_LEN_MAX 64
 
 static int sock = -1;
 
