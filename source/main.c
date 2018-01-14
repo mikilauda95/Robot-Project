@@ -59,7 +59,8 @@ void event_handler(uint16_t command, int16_t value) {
 			send_message(queue_main_to_mapping, command, value);
 			break;
 		case MESSAGE_ANGLE:
-			current_heading = value;
+			// We receive the angle in centidegrees. But main will work with degrees
+			current_heading = (int)(value/10.0 + 0.5);
 			break;
 	}
 
