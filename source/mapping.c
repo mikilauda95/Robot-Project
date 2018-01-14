@@ -124,8 +124,8 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 	bool has_found_right_edge = false;
 	bool has_found_clear_path = false;
 
-	for (int ang = 45; ang < (360+45); ang++) {
-		curr_ang = ang % 360;
+	for (int curr_ang = 45; curr_ang < (360+180); curr_ang++) {
+		// curr_ang = ang % 360;
 
 		if (has_found_right_edge && curr_ang >= (re_ang + 90)) {
 			// if we search >90 degrees after finding a right edge, stop.
@@ -142,6 +142,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		if (IS_OBJECT(tile)) {
 			if (curr_dist > max_dist) {
 				max_dist = curr_dist;
+				maxd_ang = curr_ang;
 			} else if (curr_dist < min_dist) {
 				min_dist = curr_dist;
 			}
@@ -175,10 +176,10 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		// le_ang += angle_offset;
 		// re_ang += angle_offset;
 
-		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - re_ang + le_ang);
-		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
+		// int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - re_ang + le_ang);
+		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang));
 		// printf("\t shortest distance was %d, shrinking by %d degrees\n", min_dist, angle_offset);
-		printf("\t target angle angle %d\n", *best_ang);
+		printf("\t target angle %d\n", *best_ang);
 		*best_dist = distance_to_nonempty_tile(*best_ang, &tile);
 	} else {
 		*best_ang = maxd_ang;
@@ -195,6 +196,8 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 	}
 
 	printf("\t target distance: %d\n", *best_dist);
+	*best_ang %= 360;
+
 
 }
 
