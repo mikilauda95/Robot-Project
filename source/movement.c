@@ -123,8 +123,8 @@ int movement_init(){
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = ROBOT_START_X/10;
-	coord.y = ROBOT_START_Y/10;
+	coord.x = ROBOT_START_X;
+	coord.y = ROBOT_START_Y;
 
 	return 0;
 }
