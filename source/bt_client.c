@@ -142,27 +142,34 @@ void* bt_client(void *queues){
 	uint16_t map_current_x, map_current_y;
 	bool should_send_position = false;
 
+	int cnt = 0;
+
 	for(;;){
 		
 		get_message(bt_from_main_queue, &command, &value);
 
 		switch(command) {
 			case MESSAGE_POS_X:
-				pos_x = value;
+				pos_x = value / 50;
 			break;
 			case MESSAGE_POS_Y:
-				pos_y = value;
-				should_send_position = true;
+				pos_y = value / 50;
+				cnt++;
+
+				if (cnt == 20) {
+					cnt = 0;
+					should_send_position = true;
+				}
 			break;
 			break;
 			case MESSAGE_MAP_POINT: {
-				_send_mapdata(map_current_x, map_current_y, 255 * value, 255 * value, 255 * value);
+				_send_mapdata(map_current_x, map_current_y, value, value, value);
 				map_current_x++;
-				if (map_current_x > MAP_SIZE_X - 1) {
+				if (map_current_x == MAP_SIZE_X) {
 					map_current_x = 0;
 					map_current_y++;
 				}
-				if (map_current_y == MAP_SIZE_Y - 1) {
+				if (map_current_y == MAP_SIZE_Y) {
 					_send_mapdone();
 					map_current_x = 0;
 					map_current_y = 0;
