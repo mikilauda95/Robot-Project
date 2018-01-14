@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,27 +12,30 @@
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
+char *printlist = "* r+?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
 
+int obj_x, obj_y;
+
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
+int16_t drop_pair[2] = {-1, -1};
 
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
 
 void printMap(){
-    // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
-        for (int j=0; j<MAP_SIZE_X; j++){
-          printf("%d", map[i][j]);
-        }
-        printf("\n");
-    }
+	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
+	for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+		for (int j=0; j<MAP_SIZE_X; j++){
+			printf("%d", map[i][j]);
+		}
+		printf("\n");
+	}
 }
 
 void printMap2(){
@@ -56,7 +60,7 @@ int distance_from_unmapped_tile(float ang) {
             return -1;
         }
 
-    }
+	}
 }
 
 void update_map(float ang, int dist){
@@ -162,6 +166,19 @@ void message_handler(uint16_t command, int16_t value) {
         case MESSAGE_PRINT_MAP:
             printMap2();
         break;
+        case MESSAGE_DROP_X:
+        case MESSAGE_DROP_Y:
+            drop_pair[command==MESSAGE_DROP_X?0:1] = value;
+            if (drop_pair[0] != -1 && drop_pair[1] != -1) {
+                obj_x=(int)(drop_pair[0]/TILE_SIZE);
+                obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
+
+                map[obj_y][obj_x]=DROPPED_OBJECT;
+                drop_pair[0] = -1;
+                drop_pair[1] = -1;
+            }
+        break;
     }
 }
 
@@ -170,18 +187,17 @@ void *mapping_start(void* queues){
 
     mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
-    queue_mapping_to_main = tmp[1];
+	queue_mapping_to_main = tmp[1];
 
-    uint16_t command;
-    int16_t value;
+	uint16_t command;
+	int16_t value;
 
-    // hard-code the virtual fence
     for (int x = 0; x < MAP_SIZE_X; x++) {
         map[0][x] = WALL;
     }
 
-    while(1) {
-        get_message(queue_from_main, &command, &value);
-        message_handler(command, value);
-    }
+	while(1) {
+		get_message(queue_from_main, &command, &value);
+		message_handler(command, value);
+	}
 }
