@@ -17,8 +17,8 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 #define STATE_STOPPED 4
-#define STATE_SENDING_MAP 5
-#define STATE_DROP 6
+#define STATE_DROP 5
+#define STATE_DONE 6
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
@@ -61,7 +61,7 @@ void event_handler(uint16_t command, int16_t value) {
 	switch(command) {
 		case MESSAGE_POS_X:
 		case MESSAGE_POS_Y:
-			//send_message(queue_main_to_bt, command, value);
+			send_message(queue_main_to_bt, command, value);
 			send_message(queue_main_to_mapping, command, value);
 			break;
 		case MESSAGE_ANGLE:
@@ -70,6 +70,11 @@ void event_handler(uint16_t command, int16_t value) {
 			break;
 		case MESSAGE_NO_CLEAR_ROUTE_FOUND:
 			no_route_found_count++;
+			if(no_route_found_count == 1) {
+				printf("Scan count %d, sending map...\n", scan_count);
+				send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
+				state = STATE_DONE;
+			}
 			break;
 	}
 
@@ -117,18 +122,25 @@ void event_handler(uint16_t command, int16_t value) {
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
-				scan_count++;
 
-				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
-				send_message(queue_main_to_move, MESSAGE_STOP, 0);
-				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+				
 
-				if(scan_count == 5) {
-					printf("Scan cound %d, sending map...\n", scan_count);
-					send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
-					state = STATE_SENDING_MAP;
-				}
-				state = STATE_STOPPED;
+
+
+
+				printf("Scan count %d, sending map...\n", scan_count);
+				// send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
+				send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
+				state = STATE_DONE;
+
+
+
+				// scan_count++;
+
+				// send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				// send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+
+				// state = STATE_STOPPED;
 
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
@@ -177,8 +189,9 @@ void event_handler(uint16_t command, int16_t value) {
 			}
 		break;
 
-		case STATE_SENDING_MAP:
-			// do nothing. this is the last thing we do.
+		case STATE_DONE:
+			// do nothing.
+			for(;;);
 		break;
 
 	}
@@ -221,12 +234,12 @@ void  INThandler() {
 int main() {
 
     movement_init();
-/*
+
 	if (!bt_connect()) {
 		exit(1);
 	}
 	bt_wait_for_start();
-*/	
+
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
 	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
@@ -245,7 +258,7 @@ int main() {
 	pthread_create(&movement_thread, NULL, movement_start, (void*)movement_queues);
 	pthread_create(&mapping_thread, NULL, mapping_start, (void*)mapping_queues);
 
-	//pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
+	pthread_create(&bluetooth_thread, NULL, bt_client, (void*)bt_queues);
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
