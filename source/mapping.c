@@ -267,7 +267,7 @@ void message_handler(uint16_t command, int16_t value) {
         case MESSAGE_DROP_Y:
             drop_pair[command==MESSAGE_DROP_X?0:1] = value;
             if (drop_pair[0] != -1 && drop_pair[1] != -1) {
-                obj_x=(int)((drop_pair[0]*10)/TILE_SIZE);
+                obj_x=(int)((drop_pair[0])/TILE_SIZE);
                 obj_y=(int)(drop_pair[1]/TILE_SIZE);
                 printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
 
