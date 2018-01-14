@@ -175,7 +175,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		// le_ang += angle_offset;
 		// re_ang += angle_offset;
 
-		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - (re_ang - le_ang));
+		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - re_ang + le_ang);
 		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
 		// printf("\t shortest distance was %d, shrinking by %d degrees\n", min_dist, angle_offset);
 		printf("\t target angle angle %d\n", *best_ang);
