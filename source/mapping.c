@@ -175,6 +175,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		*best_ang = maxd_ang;
 		*best_dist = max_dist / 2;
 		printf("\t no path found. moving halfway across room: %d deg %d cm\n", *best_ang, *best_dist);
+		send_message(queue_mapping_to_main, MESSAGE_NO_OPTIMAL_TARGET, 0);
 	}
 
 	if (*best_dist == -1) {

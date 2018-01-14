@@ -16,7 +16,8 @@
 #define STATE_TURNING 1
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
-#define STATE_STOPPED 4
+#define STATE_CALCULATING_MOVE 4
+#define STATE_STOPPED 5
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
@@ -27,6 +28,7 @@ pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
+bool should_scan = true;
 
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
@@ -88,16 +90,26 @@ void event_handler(uint16_t command, int16_t value) {
 		break;
 		
 		case STATE_RUNNING:
-			if (command == MESSAGE_SONAR && value < 250) {
-				printf("Main: stop. Reason: sonar (value %d)\n", value);
+			if (command == MESSAGE_SONAR && value < 250
+				|| command == MESSAGE_REACHED_DEST) {
+				
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
-				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
 				state = STATE_STOPPED;
-			} else if (command == MESSAGE_REACHED_DEST) {
-				printf("Main: stop. Reason: reached target distance\n");
-				send_message(queue_main_to_move, MESSAGE_STOP, 0);
-				send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-				state = STATE_STOPPED;
+				
+				printf("Main: stop.");
+				if (command == MESSAGE_SONAR) {
+					printf(" reason: sonar value %d\n", value);
+				} else {
+					printf(" reason: reached target destination\n");					
+				}
+				
+				if (should_scan) {
+					send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+				} else {
+					send_message(queue_main_to_mapping, MESSAGE_CALCULATE_NEXT_MOVE, 0);
+				}
+
+				should_scan = true;
 			}
 		break; 
 
@@ -105,7 +117,7 @@ void event_handler(uint16_t command, int16_t value) {
 			if (command == MESSAGE_SCAN_COMPLETE) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
-				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+				send_message(queue_main_to_mapping, MESSAGE_CALCULATE_NEXT_MOVE, 0);
 				state = STATE_STOPPED;
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
@@ -135,6 +147,11 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_move, MESSAGE_TURN_DEGREES, delta);
 					state = STATE_TURNING;
 				}
+				break;
+				case MESSAGE_NO_OPTIMAL_TARGET:
+					// There is no need to scan when we cannot find a new target (this means that 
+					// there is no)
+					should_scan = false;
 				break;
 			}
 		break;
