@@ -49,7 +49,7 @@ void update_position() {
 	coord.x += distance * cos(heading*M_PI/180);
 	coord.y += distance * sin(heading*M_PI/180);
 	// If we reached target within 5cm margin
-	if (target_dist > current_dist - 5 && target_dist < current_dist + 5) {
+	if (target_dist > current_dist - 50 && target_dist < current_dist + 50) {
 		send_message(movement_queue_to_main, MESSAGE_REACHED_DEST, 0);
 	}
 }
@@ -123,8 +123,8 @@ int movement_init(){
 	
 	f = fopen("positions.txt", "w");
 
-	coord.x = ROBOT_START_X/10;
-	coord.y = ROBOT_START_Y/10;
+	coord.x = ROBOT_START_X;
+	coord.y = ROBOT_START_Y;
 
 	return 0;
 }
