@@ -291,6 +291,7 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
+				printf("forwarding with %d\n", target_dist);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
@@ -319,6 +320,7 @@ void *movement_start(void* queues) {
                 printf("RECEIVED MESSAGE TO DROP OBJECT\n");
                 stop();
                 drop_object();
+                printf("DROP FINISHED\n");
             break;
 		}
 	}

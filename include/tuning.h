@@ -27,5 +27,5 @@
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
 
-#define SCANS_BEFORE_RELEASE 3
+#define SCANS_BEFORE_RELEASE 2
 
