@@ -88,6 +88,38 @@ void update_map(float ang, int dist){
     }
 }
 
+void filter_map(int option){	
+    int i;
+	if (option==ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < ARENA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+			map[ARENA_VER_SIZE-1][i]=EMPTY;
+		}
+		//mapping the vertical lines
+		for (i = 1; i < ARENA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][ARENA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+	} 
+	else if (option==NO_ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < START_AREA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+		}
+		for (i = 1; i < START_AREA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][START_AREA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+		
+	}
+    // TODO add filtering that removes objects found next to our dropped object
+}
+
 void initialize_map(int option){
 	int	i;
 	if (option==ARENA) {//arena map hardcoding
