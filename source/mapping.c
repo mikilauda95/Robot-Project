@@ -58,19 +58,11 @@ int distance_to_unmapped_tile(float ang) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-<<<<<<< HEAD
-		if (map[y][x] == UNMAPPED) {
-			return dist;
-		} else if (map[y][x] != EMPTY) {
-			return -1;
-		}
-=======
         if (map[y][x] == UNMAPPED) {
             return dist;
         } else if (map[y][x] > UNMAPPED) {
             return -1;
         }
->>>>>>> origin
 
 	}
 }
@@ -253,17 +245,10 @@ void *mapping_start(void* queues){
 	uint16_t command;
 	int16_t value;
 
-<<<<<<< HEAD
-	// hard-code the virtual fence
-	for (int x = 0; x < MAP_SIZE_X; x++) {
-		map[0][x] = OBSTACLE;
-	}
-=======
     // hard-code the virtual fence
     for (int x = 0; x < MAP_SIZE_X; x++) {
         map[0][x] = WALL;
     }
->>>>>>> origin
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);
