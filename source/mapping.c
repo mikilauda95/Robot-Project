@@ -128,7 +128,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 	bool has_found_right_edge = false;
 	bool has_found_clear_path = false;
 
-	for (int curr_ang = 45; curr_ang < (360+180); curr_ang++) {
+	for (int curr_ang = 45; curr_ang < (360+180); curr_ang += 2) {
 
 		if (has_found_right_edge && curr_ang >= (re_ang + 90)) {
 			// if we search >90 degrees after finding a right edge, stop.
