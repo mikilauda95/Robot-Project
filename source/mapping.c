@@ -242,18 +242,6 @@ void message_handler(uint16_t command, int16_t value) {
             }
 		break;
 
-<<<<<<< HEAD
-		case MESSAGE_ANGLE:
-		case MESSAGE_SONAR:
-			// These lines are to make sure that we update both angle and distance at the same time.
-			data_pair[command==MESSAGE_ANGLE?0:1] = value;
-			if (data_pair[0] != -1 && data_pair[1] != -1) {
-				update_map((float)data_pair[0], data_pair[1]);
-
-				data_pair[0] = -1;
-				data_pair[1] = -1;
-			}
-=======
         case MESSAGE_ANGLE:
         case MESSAGE_SONAR:
             // These lines are to make sure that we update both angle and distance at the same time.
@@ -264,7 +252,6 @@ void message_handler(uint16_t command, int16_t value) {
                 data_pair[0] = -1;
                 data_pair[1] = -1;
             }
->>>>>>> origin
 
 		break;
 
