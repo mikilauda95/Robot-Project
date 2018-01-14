@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -10,87 +9,24 @@
 #include "messages.h"
 #include "tuning.h"
 
-// 1-W indicates objects with an increasing level of certainty
-char *printlist = " r'XX";
-char *object_list = "*ABCDEFGHI";
-
 #define MAX_DELTA_ANG 4
+#define MAX_INCREMENTS 31
+// 1-W indicates objects with an increasing level of certainty
+char *printlist = "* r+?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
+
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
 
+int obj_x, obj_y;
+
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
-//
-//USED FOR THE RECALIBRATION
-//
+int16_t drop_pair[2] = {-1, -1};
+
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
-FILE * f;
-
-void filter_map(int option){
-	
-    int i;
-	if (option==ARENA) {
-		//filtering the horizontal lines
-		for (i = 1; i < HOR_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[1][i]=CERTAIN_EMPTY;
-			map[VER_SIZE+1][i]=CERTAIN_EMPTY;
-			map[VER_SIZE-1][i]=CERTAIN_EMPTY;
-		}
-		//mapping the vertical lines
-		for (i = 1; i < VER_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[i][HOR_SIZE+1]=CERTAIN_EMPTY;
-			map[i][HOR_SIZE-1]=CERTAIN_EMPTY;
-			map[i][1]=CERTAIN_EMPTY;
-		}
-	} 
-	else if (option==NO_ARENA) {
-		//filtering the horizontal lines
-		for (i = 1; i < NO_ARENA_HOR_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[1][i]=CERTAIN_EMPTY;
-		}
-		for (i = 1; i < NO_ARENA_VER_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[i][NO_ARENA_HOR_SIZE+1]=CERTAIN_EMPTY;
-			map[i][NO_ARENA_HOR_SIZE-1]=CERTAIN_EMPTY;
-			map[i][1]=CERTAIN_EMPTY;
-		}
-		
-	}
-}
-
-
-void initialize_map(int option){
-	int	i;
-	if (option==ARENA) {//arena map hardcoding
-		//mapping the horizontal lines
-		for (i = 0; i < HOR_SIZE ; i++) {
-			map[0][i]=WALL;
-			map[VER_SIZE][i]=WALL;
-		}
-		//mapping the vertical lines
-		for (i = 0; i < VER_SIZE ; i++) {
-			map[i][HOR_SIZE]=WALL;
-			map[i][0]=WALL;
-		}
-	}
-	else if(option==NO_ARENA){
-		for (i = 0; i < NO_ARENA_HOR_SIZE; ++i) {
-			map[0][i]=WALL;	
-		}
-		for (i = 0; i < NO_ARENA_VER_SIZE; ++i) {
-			map[i][0]=WALL;
-			map[i][NO_ARENA_HOR_SIZE]=WALL;
-		}
-
-	}
-}
-
 
 void printMap(){
 	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
@@ -106,30 +42,34 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            if (map[i][j] < UNMAPPED) {
-                //printf("%d", map[i][j]<-9?9:-map[i][j]);
-                printf(" ");
-            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
-                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
-            } else {
-                printf("%c", printlist[map[i][j] - 100]);
-            }
+            printf("%c", printlist[map[i][j]]);
         }
         printf("\n");
     }
+
 }
 
-int distance_from_unmapped_tile(float ang) {
+/*
+	returns the distance to the closest nonempty tile given an angle from Marvin's
+	x-y-position. Places the tile value in the tile pointer.
+	
+	Author: Ola Nordmann
+*/
+int distance_to_nonempty_tile(float ang, int8_t *tile) {
+
     int x, y;
-    for (int dist = 0; dist < MAX_SCAN_DIST * 5; dist += TILE_SIZE) {
+	int8_t tmp;
+	int search_dist = (MAP_SIZE_X > MAP_SIZE_Y) ? MAP_SIZE_X * TILE_SIZE : MAP_SIZE_Y * TILE_SIZE;
+    
+	for (int dist = 0; dist < search_dist; dist += TILE_SIZE) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-        if (map[y][x] == UNMAPPED) {
-            return dist;
-        } else if (map[y][x] > UNMAPPED) {
-            return -1;
-        }
+		tmp = map[y][x];
+		if (!IS_EMPTY(tmp)) {
+			*tile = tmp;
+			return dist;
+		}
 
 	}
 }
@@ -138,7 +78,7 @@ void readjust_to_walls(int x, int y){
     int i;
     //calibrate to vertical walls
     for (i = -1; i <= 1; ++i) {
-        if (map[y][x+2-i]==WALL) {
+        if (map[y][x+2-i]==VER_WALL) {
             printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, i);
             printf("X coordinate before readjustement= %d\n", robot_x);
             robot_x +=(i)*50;
@@ -147,7 +87,7 @@ void readjust_to_walls(int x, int y){
     } 
     //calibrate to horizontal walls
     for (i = -2; i <= 2; ++i) {
-        if (map[y+i][x]==WALL) {
+        if (map[y+i][x]==HOR_WALL) {
             printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
             printf("Y coordinate before readjustement= %d\n", robot_y);
             robot_y+=(i)*50;
@@ -156,74 +96,207 @@ void readjust_to_walls(int x, int y){
     }
 }
 
-
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
         y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
-        //we add 0.5 in order to have the right rounding
-
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
-            // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
+            // Return if a value is out of the map or we have found an obstacle there. 
+			// No need to try the other values
             return;
-        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
-            map[y][x] --; // Decrement to indicate strength of emptyness
+        } else if (map[y][x] > OBSTACLE) {
+            // map[y][x] --; // Decrement Obstacles we cannot find anymore
+        } else if (map[y][x] == UNMAPPED) {
+            map[y][x] = EMPTY;
         }
     }
     if (dist < MAX_SCAN_DIST) {
-        //only recalibrate when it is almost perpendicular to the wall for the first 5 centimeters
-        if (abs(ang-90)<MAX_DELTA_ANG||abs(ang-180)<MAX_DELTA_ANG||abs(ang-270)<MAX_DELTA_ANG||ang<(MAX_DELTA_ANG/2)||(360-ang<MAX_DELTA_ANG/2)) {
-            readjust_to_walls(x,y);
-        }
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] < MAX_STRENGTH ) {
-            map[y][x] ++; // Increment to indicate strengt of obstacle
-        } 
+        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++; // Increment Obstacles we have found before
+        }
     }
 }
 
-void message_handler(uint16_t command, int16_t value) {
-    
-    switch (command) {
-        case MESSAGE_SCAN:
-        break;
+/*
+	finds the optimal direction and length of travel for Marvin based on Marvin's current
+	position. This is done by searching for the first open passage that is at least 5 degrees 
+	wide. The search starts at 0 degrees (along the x axis of the map).
+	
+	Author:
+*/
+void find_optimal_target(int *best_ang, int *best_dist) {
 
-        case MESSAGE_SCAN_COMPLETE: {
-            int16_t target_angle = -1;
-            int16_t target_distance = -1;
-            int16_t angle_increment = 45;
+	const int obj_count_max = 20;
+	int obj_cnt = obj_count_max;
+	int curr_ang;
 
-            printf("Scan complete. Searching for angle in steps of %d...\n", angle_increment);
-            for (int angle = 0; angle < 360; angle += angle_increment) {
-                
-                int tmp = (angle + 90) % 360;
-                int d = distance_from_unmapped_tile(tmp);
-                if (d > 0) {
-                    target_angle = tmp;
-                    target_distance = d;
-                    break;
-                }
+	int curr_dist, min_dist, max_dist, maxd_ang;
+	min_dist = MAX_SCAN_DIST;
+	max_dist = 0;
+
+	int8_t tile;
+
+	// re = right edge, le = left edge
+	int re_ang, le_ang;
+	bool has_found_right_edge = false;
+	bool has_found_clear_path = false;
+
+	for (int curr_ang = 45; curr_ang < (360+180); curr_ang += 2) {
+
+		if (has_found_right_edge && curr_ang >= (re_ang + 90)) {
+			// if we search >90 degrees after finding a right edge, stop.
+			printf("\t >90 deg free after right edge. stop\n");
+			has_found_clear_path = true;
+			le_ang = curr_ang;
+			break;
+		}
+		
+		curr_dist = distance_to_nonempty_tile(curr_ang, &tile);
+
+		if (IS_OBJECT(tile)) {
+			if (curr_dist > max_dist) {
+				max_dist = curr_dist;
+				maxd_ang = curr_ang;
+			} else if (curr_dist < min_dist) {
+				min_dist = curr_dist;
+			}
+		}
+
+		if (tile == UNMAPPED && obj_cnt > 0) {
+			--obj_cnt;
+			if (obj_cnt == obj_count_max / 2){
+				obj_cnt = 0;
+				re_ang = curr_ang - obj_count_max / 2 + 1;
+				printf("\t found object right edge at %d degrees\n", re_ang);
+				has_found_right_edge = true;
+			}
+		}
+
+		if (IS_OBJECT(tile) && obj_cnt < obj_count_max) {
+			++obj_cnt;
+			if (obj_cnt == (obj_count_max / 2) && has_found_right_edge){
+				le_ang = curr_ang - obj_count_max / 2 + 1;
+				printf("\t found object left edge at %d degrees\n", le_ang);
+				has_found_clear_path = true;
+				break;
+			}
+		}
+
+	} // end for angle
+
+	if (has_found_clear_path) {
+		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang));
+		printf("\t target angle %d\n", *best_ang);
+		*best_dist = distance_to_nonempty_tile(*best_ang, &tile);
+	} else {
+		*best_ang = maxd_ang;
+		*best_dist = max_dist / 2;
+		printf("\t no path found. moving halfway across room: %d deg %d cm\n", *best_ang, *best_dist);
+	}
+
+	if (*best_dist == -1) {
+		// something went wrong and we chose a path pointing into a wall.. not good.
+		// try to drive as far as possible then.
+		printf("\t FAIL: this path points into wall! driving across room: %d deg %d cm\n", *best_ang, *best_dist);		
+		*best_ang = maxd_ang;
+		*best_dist = max_dist / 2;
+	}
+
+	printf("\t target distance: %d\n", *best_dist);
+	*best_ang %= 360;
+}
+
+void filter_map(int option){	
+    int i;
+	if (option==ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < ARENA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+			map[ARENA_VER_SIZE-1][i]=EMPTY;
+		}
+		//mapping the vertical lines
+		for (i = 1; i < ARENA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][ARENA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+	} 
+	else if (option==NO_ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < START_AREA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+		}
+		for (i = 1; i < START_AREA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][START_AREA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+		
+	}
+    // TODO add filtering that removes objects found next to our dropped object
+}
+
+void initialize_map(int option){
+	int	i;
+	if (option==ARENA) {//arena map hardcoding
+		//mapping the horizontal lines
+		for (i = 0; i < ARENA_HOR_SIZE ; i++) {
+			map[0][i]=WALL;
+			map[ARENA_VER_SIZE][i]=HOR_WALL;
+		}
+		//mapping the vertical lines
+		for (i = 0; i < ARENA_VER_SIZE ; i++) {
+			map[i][ARENA_HOR_SIZE]=VER_WALL;
+			map[i][0]=VER_WALL;
+		}
+	}
+	else if(option==NO_ARENA){
+        for (int x = 1; x < START_AREA_HOR_SIZE; x++) {
+            for (int y = 1; y < START_AREA_VER_SIZE; y++) {
+                map[x][y] = EMPTY;
             }
-            printf("done with for loop. angle is now %d\n", target_angle);
-            if (target_angle == -1) {
-                target_angle = (rand() % 8) * 45;
-                target_distance = MAX_SCAN_DIST;
-                printf("\tNo suitable angles found. Generated random: %d...\n", target_angle);
-            } else {
-                printf("\t... ok no problem, angle %d points to unmapped tile %d mm away!\n", target_angle, target_distance);
-            }
-            send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, target_distance);
-            send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
         }
-        break;
+		for (i = 0; i < START_AREA_HOR_SIZE; ++i) {
+			map[0][i]=HOR_WALL;	
+		}
+		for (i = 0; i < START_AREA_VER_SIZE; ++i) {
+			map[i][0]=VER_WALL;
+			map[i][START_AREA_HOR_SIZE]=VER_WALL;
+		}
 
-        case MESSAGE_POS_X:
-        case MESSAGE_POS_Y:
+	}
+}    
+
+void message_handler(uint16_t command, int16_t value) {
+	
+	switch (command) {
+		case MESSAGE_SCAN:
+		break;
+
+		case MESSAGE_SCAN_COMPLETE: {
+			int target_angle, target_distance;
+			printf("SCAN complete. Searching for optimal target\n");
+			find_optimal_target(&target_angle, &target_distance);
+			printf("Finished.\n");
+			
+			send_message(queue_mapping_to_main, MESSAGE_TARGET_DISTANCE, target_distance);
+			send_message(queue_mapping_to_main, MESSAGE_TARGET_ANGLE, target_angle);
+
+		}
+		break;
+
+		case MESSAGE_POS_X:
+		case MESSAGE_POS_Y:
             // These lines are to make sure that we update both positions at the same time.
             pos_pair[command==MESSAGE_POS_X?0:1] = value;
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
@@ -235,7 +308,7 @@ void message_handler(uint16_t command, int16_t value) {
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i]--;
+                            map[j][i] = EMPTY;
                         }
                     }
                 }
@@ -243,7 +316,7 @@ void message_handler(uint16_t command, int16_t value) {
                 pos_pair[0] = -1;
                 pos_pair[1] = -1;
             }
-        break;
+		break;
 
         case MESSAGE_ANGLE:
         case MESSAGE_SONAR:
@@ -256,11 +329,22 @@ void message_handler(uint16_t command, int16_t value) {
                 data_pair[1] = -1;
             }
 
-        break;
-
+		break;
         case MESSAGE_PRINT_MAP:
-            filter_map(ARENA_CHOISE);
             printMap2();
+        break;
+        case MESSAGE_DROP_X:
+        case MESSAGE_DROP_Y:
+            drop_pair[command==MESSAGE_DROP_X?0:1] = value;
+            if (drop_pair[0] != -1 && drop_pair[1] != -1) {
+                obj_x=(int)(drop_pair[0]/TILE_SIZE);
+                obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
+
+                map[obj_y][obj_x]=DROPPED_OBJECT;
+                drop_pair[0] = -1;
+                drop_pair[1] = -1;
+            }
         break;
     }
 }
@@ -271,18 +355,11 @@ void *mapping_start(void* queues){
 	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
 	queue_mapping_to_main = tmp[1];
-	initialize_map(ARENA_CHOISE);
-	printf("initial map\n");
-	printMap2();
-	f = fopen("objects.txt", "w");
 
-	uint16_t command;
-	int16_t value;
-
-	// hard-code the virtual fence
-	/*for (int x = 0; x < MAP_SIZE_X; x++) {*/
-	/*map[0][x] = OBSTACLE;*/
-	/*}*/
+    uint16_t command;
+    int16_t value;
+    
+    initialize_map(STADIUM_TYPE);
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);
