@@ -138,10 +138,14 @@ int movement_init(){
 
 	set_tacho_speed_sp(motor[L], FORWARD_SPEED);
 	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
-	set_tacho_speed_sp(sweep_motor, FORWARD_SPEED );
 	set_tacho_speed_sp(arm_motor, FORWARD_SPEED );
-	coord.x = ROBOT_START_X/10;
-	coord.y = ROBOT_START_Y/10;
+
+	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
+	
+	f = fopen("positions.txt", "w");
+
+	coord.x = ROBOT_START_X;
+	coord.y = ROBOT_START_Y;
 
 	return 0;
 }
@@ -249,6 +253,7 @@ void drop_object()
 
 	send_message(movement_queue_to_main, MESSAGE_DROP_X, obj_x);
 	send_message(movement_queue_to_main, MESSAGE_DROP_Y, obj_y);
+	send_message(movement_queue_to_main, MESSAGE_DROP_COMPLETE, 0);
 	
 }
 

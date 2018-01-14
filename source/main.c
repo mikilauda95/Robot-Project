@@ -28,7 +28,7 @@ pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
-int object_flag = 0;
+int release_counter = 0;
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
 	static int current_queue_index = 0;
@@ -107,21 +107,32 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
-				state = STATE_STOPPED;
+				
+				release_counter ++;
+				if (release_counter == SCANS_BEFORE_RELEASE) {
+					send_message(queue_main_to_move, MESSAGE_DROP, 0);
+					state = STATE_DROP;
+				} else {
+					state = STATE_STOPPED;
+				} 
+			
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
 			}
 		break;
+
 		case STATE_DROP:
-			if (command == MESSAGE_DROP_X || command == MESSAGE_DROP_Y) {
-				send_message(queue_main_to_mapping, command, value);
-				object_flag ++;
-				if (object_flag == 2) {
-					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+			switch (command) {
+				case MESSAGE_DROP_X:
+				case MESSAGE_DROP_Y:
+					send_message(queue_main_to_mapping, command, value);
+				break;
+				case MESSAGE_DROP_COMPLETE:
+					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+					send_message(queue_move_to_main, MESSAGE_FORWARD, 0);
 					state = STATE_RUNNING;
-					object_flag = 0;
-				}
+				break;
 			}
 		break;
 
@@ -132,7 +143,7 @@ void event_handler(uint16_t command, int16_t value) {
 					state = STATE_SCANNING;
 				break;
 				case MESSAGE_TARGET_DISTANCE:
-					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, value/10);
+					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, value);
 				break;
 				case MESSAGE_TARGET_ANGLE:
 				{

@@ -16,7 +16,6 @@
 #define HOR_SIZE 24
 #define VER_SIZE 40
 #define MAX_DELTA_ANG 4
-#define OPTION 0
 
 char *printlist = " r'XX+|_ ";
 char *object_list = "0ABCDEFGHI";
@@ -57,7 +56,7 @@ void filter_map(int option){
             }
         }
     }    
-	if (option==0) {
+	if (option==ARENA) {
 		//mapping the horizontal lines
 		for (i = 1; i < HOR_SIZE-1 ; ++i) {
 			/*printf("debug\n");*/
@@ -77,7 +76,7 @@ void filter_map(int option){
 
 
 void initialize_map(int option){
-	if (option==0) {//arena map hardcoding
+	if (option==ARENA) {//arena map hardcoding
 		//mapping the horizontal lines
 		int	i;
 		for (i = 0; i < HOR_SIZE ; i++) {
@@ -260,7 +259,7 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
-            filter_map(OPTION);
+            filter_map(ARENA);
             printMap2();
         break;
         case MESSAGE_DROP_X:
@@ -285,7 +284,7 @@ void *mapping_start(void* queues){
 	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
 	queue_mapping_to_main = tmp[1];
-	initialize_map(OPTION);
+	initialize_map(ARENA);
 	printf("initial map\n");
 	printMap2();
 	f = fopen("objects.txt", "w");
