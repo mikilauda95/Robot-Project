@@ -81,8 +81,13 @@ void event_handler(uint16_t command, int16_t value) {
 				} else {
 					//printf("Turn complete! \n");
 					send_message(queue_main_to_move, MESSAGE_HEADING, current_heading);
-					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-					state = STATE_RUNNING;
+					if (release_counter == SCANS_BEFORE_RELEASE) {
+						send_message(queue_main_to_move, MESSAGE_DROP, 0);
+						state = STATE_DROP;
+					} else {
+						send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+						state = STATE_RUNNING;
+					} 
 				}
 			}
 			
@@ -107,14 +112,8 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
-				
 				release_counter ++;
-				if (release_counter == SCANS_BEFORE_RELEASE) {
-					send_message(queue_main_to_move, MESSAGE_DROP, 0);
-					state = STATE_DROP;
-				} else {
-					state = STATE_STOPPED;
-				} 
+				state = STATE_STOPPED;
 			
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
@@ -129,9 +128,10 @@ void event_handler(uint16_t command, int16_t value) {
 					send_message(queue_main_to_mapping, command, value);
 				break;
 				case MESSAGE_DROP_COMPLETE:
+					printf("drop complete\n");
 					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
-					send_message(queue_move_to_main, MESSAGE_FORWARD, 0);
-					state = STATE_RUNNING;
+					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+					state = STATE_RUNNING;	
 				break;
 			}
 		break;
@@ -229,8 +229,9 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_DROP, 0);
-	state = STATE_DROP;	
+	send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+	state = STATE_RUNNING;	
 
 	uint16_t command;
 	int16_t value;
