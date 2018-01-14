@@ -10,13 +10,11 @@
 #include "messages.h"
 #include "tuning.h"
 
-#define Sleep(msec) usleep((msec)*1000)
-
-#define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
+char *printlist = " r'XX";
+char *object_list = "*ABCDEFGHI";
 
-uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
@@ -42,7 +40,14 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            printf("%c", printlist[map[i][j]]);
+            if (map[i][j] < UNMAPPED) {
+                //printf("%d", map[i][j]<-9?9:-map[i][j]);
+                printf(" ");
+            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
+                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
+            } else {
+                printf("%c", printlist[map[i][j] - 100]);
+            }
         }
         printf("\n");
     }
@@ -65,11 +70,11 @@ int distance_to_unmapped_tile(float ang) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-		if (map[y][x] == UNMAPPED) {
-			return dist;
-		} else if (map[y][x] != EMPTY) {
-			return -1;
-		}
+        if (map[y][x] == UNMAPPED) {
+            return dist;
+        } else if (map[y][x] > UNMAPPED) {
+            return -1;
+        }
 
 	}
 }
@@ -77,16 +82,14 @@ int distance_to_unmapped_tile(float ang) {
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
-        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
-        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
+        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE);
+        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
-        } else if (map[y][x] > OBSTACLE) {
-            map[y][x] --; // Decrement Obstacles we cannot find anymore
-        } else if (map[y][x] == UNMAPPED) {
-            map[y][x] = EMPTY;
+        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
+            map[y][x] --; // Decrement to indicate strength of emptyness
         }
     }
     if (dist < MAX_SCAN_DIST) {
@@ -95,11 +98,9 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
-            map[y][x] = OBSTACLE;
-        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
-            map[y][x]++; // Increment Obstacles we have found before
-        }
+        if ( map[y][x] < MAX_STRENGTH ) {
+            map[y][x] ++; // Increment to indicate strengt of obstacle
+        } 
     }
 }
 
@@ -187,15 +188,15 @@ void message_handler(uint16_t command, int16_t value) {
             // These lines are to make sure that we update both positions at the same time.
             pos_pair[command==MESSAGE_POS_X?0:1] = value;
             if (pos_pair[0] != -1 && pos_pair[1] != -1) {
-                robot_x = 10 * pos_pair[0];
-                robot_y = 10 * pos_pair[1];
+                robot_x = pos_pair[0];
+                robot_y = pos_pair[1];
                 int x = (int)(robot_x/TILE_SIZE + 0.5);
                 int y = (int)(robot_y/TILE_SIZE + 0.5);
                 map[y][x] = ROBOT_POSITION;
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i] = EMPTY;
+                            map[j][i]--;
                         }
                     }
                 }
@@ -205,16 +206,16 @@ void message_handler(uint16_t command, int16_t value) {
             }
 		break;
 
-		case MESSAGE_ANGLE:
-		case MESSAGE_SONAR:
-			// These lines are to make sure that we update both angle and distance at the same time.
-			data_pair[command==MESSAGE_ANGLE?0:1] = value;
-			if (data_pair[0] != -1 && data_pair[1] != -1) {
-				update_map((float)data_pair[0], data_pair[1]);
-
-				data_pair[0] = -1;
-				data_pair[1] = -1;
-			}
+        case MESSAGE_ANGLE:
+        case MESSAGE_SONAR:
+            // These lines are to make sure that we update both angle and distance at the same time.
+            data_pair[command==MESSAGE_ANGLE?0:1] = value;
+            if (data_pair[0] != -1 && data_pair[1] != -1) {
+                // We have received the angle in centidegrees, therefore we divide by 10.
+                update_map(data_pair[0]/10.0, data_pair[1]);
+                data_pair[0] = -1;
+                data_pair[1] = -1;
+            }
 
 		break;
 
@@ -236,10 +237,10 @@ void *mapping_start(void* queues){
 	uint16_t command;
 	int16_t value;
 
-	// hard-code the virtual fence
-	for (int x = 0; x < MAP_SIZE_X; x++) {
-		map[0][x] = OBSTACLE;
-	}
+    // hard-code the virtual fence
+    for (int x = 0; x < MAP_SIZE_X; x++) {
+        map[0][x] = WALL;
+    }
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);
