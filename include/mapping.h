@@ -10,4 +10,8 @@
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
+#define IS_UNMAPPED(tile) (tile == 0)
+#define IS_EMPTY(tile) ((tile < 0) || (tile == ROBOT_POSITION))
+#define IS_OBJECT(tile) ((tile > 0) && (tile != ROBOT_POSITION))
+
 void *mapping_start(void* queues);

@@ -52,22 +52,30 @@ void printMap2(){
 
 }
 
-int distance_to_unmapped_tile(float ang) {
+/*
+	returns the distance to the closest nonempty tile given an angle from Marvin's
+	x-y-position. Places the tile value in the tile pointer.
+	
+	Author: Ola Nordmann
+*/
+int distance_to_nonempty_tile(float ang, int8_t *tile) {
+
     int x, y;
-    for (int dist = 0; dist < MAX_SCAN_DIST * 5; dist += TILE_SIZE) {
+	int8_t tmp;
+	int search_dist = (MAP_SIZE_X > MAP_SIZE_Y) ? MAP_SIZE_X * TILE_SIZE : MAP_SIZE_Y * TILE_SIZE;
+    
+	for (int dist = 0; dist < search_dist; dist += TILE_SIZE) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-        if (map[y][x] == UNMAPPED) {
-            return dist;
-        } else if (map[y][x] > UNMAPPED) {
-            return -1;
-        }
+		tmp = map[y][x];
+		if (!IS_EMPTY(tmp)) {
+			*tile = tmp;
+			return dist;
+		}
 
 	}
 }
-
-// todo: add distance to object so we can drive to farthest covrner
 
 void update_map(float ang, int dist){
     int x, y;   
@@ -76,7 +84,8 @@ void update_map(float ang, int dist){
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
-            // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
+            // Return if a value is out of the map or we have found an obstacle there. 
+			// No need to try the other values
             return;
         } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
             map[y][x] --; // Decrement to indicate strength of emptyness
@@ -94,52 +103,66 @@ void update_map(float ang, int dist){
     }
 }
 
-void find_optimal_target(int *tgt_ang, int *tgt_dist) {
+/*
+	finds the optimal direction and length of travel for Marvin based on Marvin's current
+	position. This is done by searching for the first open passage that is at least 5 degrees 
+	wide. The search starts at 0 degrees (along the x axis of the map).
+	
+	Author:
+*/
+void find_optimal_target(int *best_ang, int *best_dist) {
 
-	printf("searching for target angle/distance...\n");
-
-	const int obj_count_max = 10;
+	const int obj_count_max = 20;
 	int obj_cnt = obj_count_max;
+	int curr_ang;
 
-	int d, maxd, maxd_ang, mind;
-	maxd = 0;
-	mind = MAX_SCAN_DIST;
+	int curr_dist, min_dist, max_dist, maxd_ang;
+	min_dist = MAX_SCAN_DIST;
+	max_dist = 0;
+
+	int8_t tile;
 
 	// re = right edge, le = left edge
 	int re_ang, le_ang;
 	bool has_found_right_edge = false;
 	bool has_found_clear_path = false;
 
-	for (int curr_ang = 0; curr_ang < 360; curr_ang++) {
+	for (int ang = 45; ang < (360+45); ang++) {
+		curr_ang = ang % 360;
 
-		if (has_found_right_edge && curr_ang == 180) {
+		if (has_found_right_edge && curr_ang >= (re_ang + 90)) {
 			// if we search >90 degrees after finding a right edge, stop.
-			printf("\t >180 deg free after right edge. stop\n");
+			printf("\t >90 deg free after right edge. stop\n");
 			has_found_clear_path = true;
 			le_ang = curr_ang;
 			break;
 		}
 		
-		d = distance_to_unmapped_tile(curr_ang);
-		if (d > maxd) {
-			maxd = d;
-			maxd_ang = curr_ang;
-		}
-		if (d < mind && d > 0) {
-			mind = d;
+		curr_dist = distance_to_nonempty_tile(curr_ang, &tile);
+
+		// printf("a=%d, cd=%d, tile=%d, objc=%d\n", curr_ang, curr_dist, tile, obj_cnt);
+
+		if (IS_OBJECT(tile)) {
+			if (curr_dist > max_dist) {
+				max_dist = curr_dist;
+			} else if (curr_dist < min_dist) {
+				min_dist = curr_dist;
+			}
 		}
 
-		if (d > 0 && obj_cnt > 0){
+		if (IS_UNMAPPED(tile) && obj_cnt > 0) {
 			--obj_cnt;
 			if (obj_cnt == obj_count_max / 2){
+				obj_cnt = 0;
 				re_ang = curr_ang - obj_count_max / 2 + 1;
 				printf("\t found object right edge at %d degrees\n", re_ang);
 				has_found_right_edge = true;
 			}
+		}
 
-		} else if (d < 0 && obj_cnt < obj_count_max){
+		if (IS_OBJECT(tile) && obj_cnt < obj_count_max) {
 			++obj_cnt;
-			if (obj_cnt == obj_count_max / 2 && has_found_right_edge){
+			if (obj_cnt == (obj_count_max / 2) && has_found_right_edge){
 				le_ang = curr_ang - obj_count_max / 2 + 1;
 				printf("\t found object left edge at %d degrees\n", le_ang);
 				has_found_clear_path = true;
@@ -147,30 +170,34 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 			}
 		}
 
-	}
+	} // end for angle
 
 	if (has_found_clear_path) {
-		le_ang += 2000 / mind;
-		printf("\t shortest distance was %d -> setting le to %d degrees\n", mind, le_ang);
+		// shrink the passage width when we are close to a wall.
+		// int angle_offset = 2000 / min_dist;
+		// le_ang += angle_offset;
+		// re_ang += angle_offset;
+
 		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - (le_ang - re_ang));
-		*tgt_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
-		printf("\t -> choosing path at angle %d\n", *tgt_ang);
-		*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
+		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
+		// printf("\t shortest distance was %d, shrinking by %d degrees\n", min_dist, angle_offset);
+		printf("\t target angle angle %d\n", *best_ang);
+		*best_dist = distance_to_nonempty_tile(*best_ang, &tile);
 	} else {
-		*tgt_ang = maxd_ang;
-		*tgt_dist = maxd / 2;
-		printf("\t no path found. moving halfway across room: %d deg\n", *tgt_ang);
-		printf("\t however maxd is %d at % degrees \n", maxd, maxd_ang);
+		*best_ang = maxd_ang;
+		*best_dist = max_dist / 2;
+		printf("\t no path found. moving halfway across room: %d deg %d cm\n", *best_ang, *best_dist);
 	}
 
-	if (*tgt_dist == -1) {
+	if (*best_dist == -1) {
 		// something went wrong and we chose a path pointing into a wall.. not good.
 		// try to drive as far as possible then.
-		*tgt_ang = maxd_ang;
-		*tgt_dist = maxd;
+		printf("\t FAIL: this path points into wall! driving across room: %d deg %d cm\n", *best_ang, *best_dist);		
+		*best_ang = maxd_ang;
+		*best_dist = max_dist / 2;
 	}
 
-	printf("\t -> target distance: %d\n", *tgt_dist);
+	printf("\t target distance: %d\n", *best_dist);
 
 }
 
