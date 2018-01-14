@@ -13,17 +13,16 @@
 #include "tuning.h"
 
 
-#define MAX_INCREMENTS 31
-// 1-W indicates objects with an increasing level of certainty
-char *printlist = "* r'?X+|_?123456789ABCDEFGHIJKLMNOPQRSTUVW";
-
 #define HOR_SIZE 24
 #define VER_SIZE 40
-
+#define MAX_DELTA_ANG 4
 #define OPTION 0
 
-#define MAX_DELTA_ANG 4
-uint8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+char *printlist = " r'XX+|_ ";
+char *object_list = "0ABCDEFGHI";
+
+int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
+
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
 
@@ -52,8 +51,8 @@ void filter_map(int option){
     for (int j = obj_x-2; j <= obj_x+2; j++) {
         for (int k = obj_y-2; k <= obj_y+2; k++) {
             if (j > 0 && j < MAP_SIZE_X  && k > 0 && k < MAP_SIZE_Y) {
-                if (map[k][j] == OBSTACLE) {
-                    map[k][j] = EMPTY;
+                if (map[k][j] < MAX_STRENGTH) {
+                    map[k][j] = CERTAIN_EMPTY;
                 }
             }
         }
@@ -62,16 +61,16 @@ void filter_map(int option){
 		//mapping the horizontal lines
 		for (i = 1; i < HOR_SIZE-1 ; ++i) {
 			/*printf("debug\n");*/
-			map[1][i]=EMPTY;
-			map[VER_SIZE+1][i]=EMPTY;
-			map[VER_SIZE-1][i]=EMPTY;
+			map[1][i]=CERTAIN_EMPTY;
+			map[VER_SIZE+1][i]=CERTAIN_EMPTY;
+			map[VER_SIZE-1][i]=CERTAIN_EMPTY;
 		}
 		//mapping the vertical lines
 		for (i = 1; i < VER_SIZE-1 ; ++i) {
 			/*printf("debug\n");*/
-			map[i][HOR_SIZE+1]=EMPTY;
-			map[i][HOR_SIZE-1]=EMPTY;
-			map[i][1]=EMPTY;
+			map[i][HOR_SIZE+1]=CERTAIN_EMPTY;
+			map[i][HOR_SIZE-1]=CERTAIN_EMPTY;
+			map[i][1]=CERTAIN_EMPTY;
 		}
 	} 
 }
@@ -79,23 +78,17 @@ void filter_map(int option){
 
 void initialize_map(int option){
 	if (option==0) {//arena map hardcoding
-		printf("In initialize\n");
 		//mapping the horizontal lines
 		int	i;
 		for (i = 0; i < HOR_SIZE ; i++) {
-			/*printf("debug\n");*/
 			map[0][i]=HOR_WALL;
 			map[VER_SIZE][i]=HOR_WALL;
-			printf("HOR wall\n");
 		}
 		//mapping the vertical lines
 		for (i = 0; i < VER_SIZE ; i++) {
-			/*printf("debug\n");*/
 			map[i][HOR_SIZE]=VER_WALL;
 			map[i][0]=VER_WALL;
-			printf("VER wall\n");
 		}
-		printf("finished here\n");
 	}
 }
 
@@ -111,13 +104,20 @@ void printMap(){
 }
 
 void printMap2(){
-	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-	for (int i = MAP_SIZE_Y-1; i>=0; i--) {
-		for (int j=0; j<MAP_SIZE_X; j++){
-			printf("%c", printlist[map[i][j]]);
-		}
-		printf("\n");
-	}
+    // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
+    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+        for (int j=0; j<MAP_SIZE_X; j++){
+            if (map[i][j] < UNMAPPED) {
+                //printf("%d", map[i][j]<-9?9:-map[i][j]);
+                printf(" ");
+            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
+                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
+            } else {
+                printf("%c", printlist[map[i][j] - 100]);
+            }
+        }
+        printf("\n");
+    }
 }
 
 int distance_from_unmapped_tile(float ang) {
@@ -126,11 +126,11 @@ int distance_from_unmapped_tile(float ang) {
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
-		if (map[y][x] == UNMAPPED) {
-			return dist;
-		} else if (map[y][x] != EMPTY) {
-			return -1;
-		}
+        if (map[y][x] == UNMAPPED) {
+            return dist;
+        } else if (map[y][x] > UNMAPPED) {
+            return -1;
+        }
 
 	}
 }
@@ -168,10 +168,8 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
-        } else if (map[y][x] > OBSTACLE) {
-            map[y][x] --; // Decrement Obstacles we cannot find anymore
-        } else if (map[y][x] == UNMAPPED) {
-            map[y][x] = EMPTY;
+        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
+            map[y][x] --; // Decrement to indicate strength of emptyness
         }
     }
     if (dist < MAX_SCAN_DIST) {
@@ -184,13 +182,9 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if (map[y][x]!=OBJECT_DROPPED) {
-            if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
-                map[y][x] = OBSTACLE;
-            } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
-                map[y][x]++; // Increment Obstacles we have found before
-            }
-        }
+        if ( map[y][x] < MAX_STRENGTH ) {
+            map[y][x] ++; // Increment to indicate strengt of obstacle
+        } 
     }
 }
 
@@ -242,7 +236,7 @@ void message_handler(uint16_t command, int16_t value) {
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i] = EMPTY;
+                            map[j][i]--;
                         }
                     }
                 }
@@ -273,8 +267,10 @@ void message_handler(uint16_t command, int16_t value) {
         case MESSAGE_DROP_Y:
             drop_pair[command==MESSAGE_DROP_X?0:1] = value;
             if (drop_pair[0] != -1 && drop_pair[1] != -1) {
-                obj_x=(int)(drop_pair[0]/TILE_SIZE);
+                obj_x=(int)((drop_pair[0]*10)/TILE_SIZE);
                 obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
+
                 map[obj_y][obj_x]=OBJECT_DROPPED;
                 drop_pair[0] = -1;
                 drop_pair[1] = -1;
