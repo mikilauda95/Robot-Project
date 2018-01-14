@@ -229,9 +229,15 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-	state = STATE_RUNNING;	
+	// Start by scanning in the small arena. Start by running forward in the big one
+	if (STADIUM_TYPE == 0) {
+		send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+		state = STATE_SCANNING;	
+	} else {
+		send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+		send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+		state = STATE_RUNNING;
+	}
 
 	uint16_t command;
 	int16_t value;

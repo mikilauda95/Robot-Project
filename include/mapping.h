@@ -5,6 +5,8 @@
 #define WALL 5
 #define OBSTACLE 10
 
+#define ARENA 0
+#define NO_ARENA 1
 #define MAP_SIZE_X 80
 #define MAP_SIZE_Y 80
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
