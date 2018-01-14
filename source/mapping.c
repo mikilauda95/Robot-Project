@@ -70,22 +70,22 @@ void initialize_map(int option){
 	if (option==ARENA) {//arena map hardcoding
 		//mapping the horizontal lines
 		for (i = 0; i < HOR_SIZE ; i++) {
-			map[0][i]=HOR_WALL;
-			map[VER_SIZE][i]=HOR_WALL;
+			map[0][i]=WALL;
+			map[VER_SIZE][i]=WALL;
 		}
 		//mapping the vertical lines
 		for (i = 0; i < VER_SIZE ; i++) {
-			map[i][HOR_SIZE]=VER_WALL;
-			map[i][0]=VER_WALL;
+			map[i][HOR_SIZE]=WALL;
+			map[i][0]=WALL;
 		}
 	}
 	else if(option==NO_ARENA){
 		for (i = 0; i < NO_ARENA_HOR_SIZE; ++i) {
-			map[0][i]=HOR_WALL;	
+			map[0][i]=WALL;	
 		}
 		for (i = 0; i < NO_ARENA_VER_SIZE; ++i) {
-			map[i][0]=VER_WALL;
-			map[i][NO_ARENA_HOR_SIZE]=VER_WALL;
+			map[i][0]=WALL;
+			map[i][NO_ARENA_HOR_SIZE]=WALL;
 		}
 
 	}
@@ -138,7 +138,7 @@ void readjust_to_walls(int x, int y){
     int i;
     //calibrate to vertical walls
     for (i = -1; i <= 1; ++i) {
-        if (map[y][x+2-i]==VER_WALL) {
+        if (map[y][x+2-i]==WALL) {
             printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, i);
             printf("X coordinate before readjustement= %d\n", robot_x);
             robot_x +=(i)*50;
@@ -147,7 +147,7 @@ void readjust_to_walls(int x, int y){
     } 
     //calibrate to horizontal walls
     for (i = -2; i <= 2; ++i) {
-        if (map[y+i][x]==HOR_WALL) {
+        if (map[y+i][x]==WALL) {
             printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
             printf("Y coordinate before readjustement= %d\n", robot_y);
             robot_y+=(i)*50;
