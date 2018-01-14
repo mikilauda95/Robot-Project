@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,44 +11,40 @@
 #include "messages.h"
 #include "tuning.h"
 
+#define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = " r'XX";
-char *object_list = "*ABCDEFGHI";
+char *printlist = "* r+?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
 int robot_x = ROBOT_START_X;
 int robot_y = ROBOT_START_Y;
 
+int obj_x, obj_y;
+
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
+int16_t drop_pair[2] = {-1, -1};
 
 mqd_t queue_from_main, queue_mapping_to_main, queue_mapping_to_bt;
 pthread_t map_send_thread;
 
 
 void printMap(){
-    // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-    for (int i = MAP_SIZE_Y-1; i>=0; i--) {
-        for (int j=0; j<MAP_SIZE_X; j++){
-          printf("%d", map[i][j]);
-        }
-        printf("\n");
-    }
+	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
+	for (int i = MAP_SIZE_Y-1; i>=0; i--) {
+		for (int j=0; j<MAP_SIZE_X; j++){
+			printf("%d", map[i][j]);
+		}
+		printf("\n");
+	}
 }
 
 void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            if (map[i][j] < UNMAPPED) {
-                //printf("%d", map[i][j]<-9?9:-map[i][j]);
-                printf(" ");
-            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
-                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
-            } else {
-                printf("%c", printlist[map[i][j] - 100]);
-            }
+            printf("%c", printlist[map[i][j]]);
         }
         printf("\n");
     }
@@ -72,7 +69,7 @@ int distance_to_unmapped_tile(float ang) {
 
         if (map[y][x] == UNMAPPED) {
             return dist;
-        } else if (map[y][x] > UNMAPPED) {
+        } else if (map[y][x] != EMPTY) {
             return -1;
         }
 
@@ -82,14 +79,16 @@ int distance_to_unmapped_tile(float ang) {
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
-        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE);
-        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE);
+        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
-        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
-            map[y][x] --; // Decrement to indicate strength of emptyness
+        } else if (map[y][x] > OBSTACLE) {
+            map[y][x] --; // Decrement Obstacles we cannot find anymore
+        } else if (map[y][x] == UNMAPPED) {
+            map[y][x] = EMPTY;
         }
     }
     if (dist < MAX_SCAN_DIST) {
@@ -98,9 +97,11 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] < MAX_STRENGTH ) {
-            map[y][x] ++; // Increment to indicate strengt of obstacle
-        } 
+        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++; // Increment Obstacles we have found before
+        }
     }
 }
 
@@ -143,7 +144,7 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 			printf("\t found object left edge at %d degrees\n", curr_ang);
 			found_clear_path = true;
 			break;
-		}	
+		}
 
 	}
 
@@ -154,7 +155,7 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 	} else {
 		*tgt_ang = (rand() % 8) * 45;
 		printf("\t no path found. Random angle: %d\n", *tgt_ang);
-		send_message(queue_mapping_to_main, MESSAGE_NO_ROUTE_FOUND, 0);
+		send_message(queue_mapping_to_main, MESSAGE_NO_CLEAR_ROUTE_FOUND, 0);
 	}
 
 	*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
@@ -197,7 +198,7 @@ void message_handler(uint16_t command, int16_t value) {
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i]--;
+                            map[j][i] = EMPTY;
                         }
                     }
                 }
@@ -219,12 +220,23 @@ void message_handler(uint16_t command, int16_t value) {
             }
 
 		break;
+        case MESSAGE_PRINT_MAP:
+            printMap2();
+        break;
+        case MESSAGE_DROP_X:
+        case MESSAGE_DROP_Y:
+            drop_pair[command==MESSAGE_DROP_X?0:1] = value;
+            if (drop_pair[0] != -1 && drop_pair[1] != -1) {
+                obj_x=(int)(drop_pair[0]/TILE_SIZE);
+                obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
 
-		case MESSAGE_PRINT_MAP:
-			printMap2();
-		break;
-	}
-
+                map[obj_y][obj_x]=DROPPED_OBJECT;
+                drop_pair[0] = -1;
+                drop_pair[1] = -1;
+            }
+        break;
+    }
 }
 
 void *mapping_start(void* queues){
@@ -238,7 +250,6 @@ void *mapping_start(void* queues){
 	uint16_t command;
 	int16_t value;
 
-    // hard-code the virtual fence
     for (int x = 0; x < MAP_SIZE_X; x++) {
         map[0][x] = WALL;
     }
