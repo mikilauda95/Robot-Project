@@ -25,6 +25,7 @@ struct coord {
 	float x;
 	float y;
 } coord;
+
 int target_dist;
 float current_dist;
 // angle between robot nose and the x axis
@@ -36,7 +37,6 @@ bool do_sweep_sonar = false;
 
 int prev_l_pos = 0;
 int prev_r_pos = 0;
-FILE *f;
 
 void wait_for_motor(uint8_t motor) {
 	int spd = 0;
@@ -139,11 +139,8 @@ int movement_init(){
 	set_tacho_speed_sp(motor[L], FORWARD_SPEED);
 	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_speed_sp(arm_motor, FORWARD_SPEED );
-
 	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
 	
-	f = fopen("positions.txt", "w");
-
 	coord.x = ROBOT_START_X;
 	coord.y = ROBOT_START_Y;
 
@@ -291,7 +288,6 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				printf("forwarding with %d\n", target_dist);
 				forward2(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
@@ -317,11 +313,9 @@ void *movement_start(void* queues) {
 				heading = value;
 			break;
             case MESSAGE_DROP:
-                printf("RECEIVED MESSAGE TO DROP OBJECT\n");
                 stop();
                 drop_object();
-                printf("DROP FINISHED\n");
-            break;
+\            break;
 		}
 	}
 }

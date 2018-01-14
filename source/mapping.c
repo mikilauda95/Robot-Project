@@ -1,7 +1,5 @@
-//TODO: transform the update function so that it takes as arguments x and y and just update the map with the values corrected
-//
-#include <stdio.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
