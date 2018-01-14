@@ -120,7 +120,7 @@ void event_handler(uint16_t command, int16_t value) {
 					state = STATE_SCANNING;
 				break;
 				case MESSAGE_TARGET_DISTANCE:
-					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, value/10);
+					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, value);
 				break;
 				case MESSAGE_TARGET_ANGLE:
 				{
