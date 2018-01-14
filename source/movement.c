@@ -38,6 +38,20 @@ int prev_l_pos = 0;
 int prev_r_pos = 0;
 FILE *f;
 
+void wait_for_motor(uint8_t motor) {
+	int spd = 0;
+	// First we wait until the motor starts spinning
+	while (spd  == 0) {
+		Sleep(10);
+		get_tacho_speed(motor, &spd);
+	}
+	// Then we block until done turning	
+	while ( spd != 0 ) { 
+		get_tacho_speed(motor, &spd);
+		Sleep(10);
+	}
+}
+
 void update_position() {
 	// this function relies on the position to be set to zero after every turn.
 	// the idea is to call this every time we whish to send our position. 
@@ -173,18 +187,7 @@ void turn_degrees(float angle, int speed) {
 	/*multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );*/
     set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
     set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
-	
-	int spd = 0;
-	// First we wait until the motor starts spinning
-	while (spd  == 0) {
-		Sleep(10);
-		get_tacho_speed(motor[L], &spd);
-	}
-	// Then we block until done turning	
-	while ( spd != 0 ) { 
-		get_tacho_speed(motor[L], &spd);
-		Sleep(10);
-	}
+	wait_for_motor(motor[L]);
 
 }
 
@@ -234,16 +237,19 @@ void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
 
 void drop_object()
 {
-    printf("DROPPING\n");
     set_tacho_position_sp(arm_motor, -90);
     set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
-    Sleep(1000);
+    
+	wait_for_motor(arm_motor);
 	set_tacho_position_sp(arm_motor, 90);
 	set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
-    Sleep(1000);
-    /*set_tacho_position(arm_motor, 180);*/
-    /*set_tacho_command_inx(sweep_motor, TACHO_RUN_TO_ABS_POS);*/
-    printf("END OF DROPPING\n");
+	wait_for_motor(arm_motor);
+	int16_t obj_x = coord.x + OBJECT_OFFSET * cos((heading + 180)/180 * M_PI);
+	int16_t obj_y = coord.y + OBJECT_OFFSET * sin((heading + 180)/180 * M_PI);
+
+	send_message(movement_queue_to_main, MESSAGE_DROP_X, obj_x);
+	send_message(movement_queue_to_main, MESSAGE_DROP_Y, obj_y);
+	
 }
 
 void *movement_start(void* queues) {

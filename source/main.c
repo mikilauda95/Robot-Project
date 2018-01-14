@@ -28,7 +28,7 @@ pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
-
+int object_flag = 0;
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
 	static int current_queue_index = 0;
@@ -113,13 +113,15 @@ void event_handler(uint16_t command, int16_t value) {
 			}
 		break;
 		case STATE_DROP:
-            printf("HI I AM IN CASE STATE DROP\n");
-            if (command == MESSAGE_DROP_COMPLETE){
-                printf("DROP COMPLETE RECEIVED\n");
-                send_message(queue_main_to_mapping, MESSAGE_UPDATE_OBJECT, 0);
-                send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-                state = STATE_SCANNING;	
-            }
+			if (command == MESSAGE_DROP_X || command == MESSAGE_DROP_Y) {
+				send_message(queue_main_to_mapping, command, value);
+				object_flag ++;
+				if (object_flag == 2) {
+					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+					state = STATE_RUNNING;
+					object_flag = 0;
+				}
+			}
 		break;
 
 		case STATE_STOPPED:
@@ -216,7 +218,6 @@ int main() {
 
 	send_message(queue_main_to_move, MESSAGE_DROP, 0);
 	state = STATE_DROP;	
-
 
 	uint16_t command;
 	int16_t value;

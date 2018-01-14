@@ -31,6 +31,7 @@ int obj_x, obj_y;
 
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
+int16_t drop_pair[2] = {-1, -1};
 //
 //USED FOR THE RECALIBRATION
 //
@@ -45,7 +46,18 @@ mqd_t queue_mapping_to_main;
 FILE * f;
 
 void filter_map(int option){
-	int i;
+	
+    int i;
+    // Clear out tiles adjacent to our dropped object 
+    for (int j = obj_x-2; j <= obj_x+2; j++) {
+        for (int k = obj_y-2; k <= obj_y+2; k++) {
+            if (j > 0 && j < MAP_SIZE_X  && k > 0 && k < MAP_SIZE_Y) {
+                if (map[k][j] == OBSTACLE) {
+                    map[k][j] = EMPTY;
+                }
+            }
+        }
+    }    
 	if (option==0) {
 		//mapping the horizontal lines
 		for (i = 1; i < HOR_SIZE-1 ; ++i) {
@@ -61,7 +73,7 @@ void filter_map(int option){
 			map[i][HOR_SIZE-1]=EMPTY;
 			map[i][1]=EMPTY;
 		}
-	}
+	} 
 }
 
 
@@ -257,12 +269,16 @@ void message_handler(uint16_t command, int16_t value) {
             filter_map(OPTION);
             printMap2();
         break;
-        case MESSAGE_UPDATE_OBJECT:
-            printf("NOW I MAP THE OBJECT\n");
-            obj_x=(int)(robot_x/TILE_SIZE);
-            obj_y=(int)(robot_y/TILE_SIZE);
-            printf("OK I AM MAPPING THE RELEASED OBJECT at %d %d\n", obj_x, obj_y);
-            map[obj_y-4][obj_x]=OBJECT_DROPPED;
+        case MESSAGE_DROP_X:
+        case MESSAGE_DROP_Y:
+            drop_pair[command==MESSAGE_DROP_X?0:1] = value;
+            if (drop_pair[0] != -1 && drop_pair[1] != -1) {
+                obj_x=(int)(drop_pair[0]/TILE_SIZE);
+                obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                map[obj_y][obj_x]=OBJECT_DROPPED;
+                drop_pair[0] = -1;
+                drop_pair[1] = -1;
+            }
         break;
     }
 }

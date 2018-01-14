@@ -12,5 +12,6 @@
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 68
 #define ARM_MOTOR_PORT 67
+#define OBJECT_OFFSET 200
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
