@@ -60,6 +60,8 @@ int distance_to_unmapped_tile(float ang) {
 	}
 }
 
+// todo: add distance to object so we can drive to farthest covrner
+
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
@@ -93,55 +95,78 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 
 	printf("searching for target angle/distance...\n");
 
-	int ang_step = 1;
-	int curr_ang, offset_ang;
-	int d;
+	const int obj_count_max = 10;
+	int obj_cnt = obj_count_max;
+
+	int d, maxd, maxd_ang, mind;
+	maxd = 0;
+	mind = MAX_SCAN_DIST;
 
 	// re = right edge, le = left edge
-	int re_offset_ang = -1;
-	int le_offset_ang = -1;
-	
-	uint8_t edges = 0xFF;
-	const uint8_t RIGHT_EDGE_MASK = 0x0F;
-	const uint8_t LEFT_EDGE_MASK = 0xF0;
+	int re_ang, le_ang;
+	bool has_found_right_edge = false;
+	bool has_found_clear_path = false;
 
-	bool found_clear_path = false;
+	for (int curr_ang = 0; curr_ang < 360; curr_ang++) {
 
-	for (offset_ang = 0; offset_ang < 360; offset_ang += ang_step) {
-		
-		curr_ang = (offset_ang + 90) % 360;
-		d = distance_to_unmapped_tile(curr_ang);
-		
-		edges = (edges >> 1) & 0xFF;
-		if (d == -1) {
-			edges |= (1 << 7);
-		} 
-
-		if (edges == RIGHT_EDGE_MASK) {
-			// right obj. edge found with 4 degrees of open space
-			re_offset_ang = offset_ang;
-			printf("\t found object right edge at %d degrees\n", curr_ang);
-			
-		} else if (edges == LEFT_EDGE_MASK) {
-			// left obj. edge found with 4 degrees of open space			
-			le_offset_ang = offset_ang;
-			printf("\t found object left edge at %d degrees\n", curr_ang);
-			found_clear_path = true;
+		if (has_found_right_edge && curr_ang == 180) {
+			// if we search >90 degrees after finding a right edge, stop.
+			printf("\t >180 deg free after right edge. stop\n");
+			has_found_clear_path = true;
+			le_ang = curr_ang;
 			break;
-		}	
+		}
+		
+		d = distance_to_unmapped_tile(curr_ang);
+		if (d > maxd) {
+			maxd = d;
+			maxd_ang = curr_ang;
+		}
+		if (d < mind && d > 0) {
+			mind = d;
+		}
+
+		if (d > 0 && obj_cnt > 0){
+			--obj_cnt;
+			if (obj_cnt == obj_count_max / 2){
+				re_ang = curr_ang - obj_count_max / 2 + 1;
+				printf("\t found object right edge at %d degrees\n", re_ang);
+				has_found_right_edge = true;
+			}
+
+		} else if (d < 0 && obj_cnt < obj_count_max){
+			++obj_cnt;
+			if (obj_cnt == obj_count_max / 2 && has_found_right_edge){
+				le_ang = curr_ang - obj_count_max / 2 + 1;
+				printf("\t found object left edge at %d degrees\n", le_ang);
+				has_found_clear_path = true;
+				break;
+			}
+		}
 
 	}
 
-	if (found_clear_path) {
-		int offset_delta = re_offset_ang + 0.5 * (le_offset_ang - re_offset_ang);
-		*tgt_ang = (offset_delta + 90) % 360;
+	if (has_found_clear_path) {
+		le_ang += 2000 / mind;
+		printf("\t shortest distance was %d -> setting le to %d degrees\n", mind, le_ang);
+		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - (le_ang - re_ang));
+		*tgt_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
 		printf("\t -> choosing path at angle %d\n", *tgt_ang);
+		*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
 	} else {
-		*tgt_ang = (rand() % 8) * 45;
-		printf("\t no path found. Random angle: %d\n", *tgt_ang);		
+		*tgt_ang = maxd_ang;
+		*tgt_dist = maxd / 2;
+		printf("\t no path found. moving halfway across room: %d deg\n", *tgt_ang);
+		printf("\t however maxd is %d at % degrees \n", maxd, maxd_ang);
 	}
 
-	*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
+	if (*tgt_dist == -1) {
+		// something went wrong and we chose a path pointing into a wall.. not good.
+		// try to drive as far as possible then.
+		*tgt_ang = maxd_ang;
+		*tgt_dist = maxd;
+	}
+
 	printf("\t -> target distance: %d\n", *tgt_dist);
 
 }
