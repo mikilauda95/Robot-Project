@@ -12,7 +12,7 @@
 
 #define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
+char *printlist = "* r+?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
@@ -170,7 +170,7 @@ void message_handler(uint16_t command, int16_t value) {
         case MESSAGE_DROP_Y:
             drop_pair[command==MESSAGE_DROP_X?0:1] = value;
             if (drop_pair[0] != -1 && drop_pair[1] != -1) {
-                obj_x=(int)((drop_pair[0])/TILE_SIZE);
+                obj_x=(int)(drop_pair[0]/TILE_SIZE);
                 obj_y=(int)(drop_pair[1]/TILE_SIZE);
                 printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
 

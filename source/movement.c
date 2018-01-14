@@ -10,8 +10,6 @@
 #include "messages.h"
 #include "tuning.h"
 
-
-
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 enum name {L, R};
@@ -78,7 +76,6 @@ void *position_sender(void* queues) {
 	for(;;) {
 		if(do_track_position){
 			update_position();
-			fprintf(f, "%d %d\n", (int)coord.x, (int)coord.y);
 		}
 		uint16_t x = (int16_t) (coord.x + 0.5);
 		uint16_t y = (int16_t) (coord.y + 0.5);
@@ -136,7 +133,7 @@ int movement_init(){
 	set_tacho_stop_action_inx( sweep_motor, TACHO_BRAKE );
 	set_tacho_stop_action_inx( arm_motor, TACHO_BRAKE );
 
-	set_tacho_speed_sp(motor[L], FORWARD_SPEED);
+	set_tacho_speed_sp(motor[L], FORWARD_SPEED );
 	set_tacho_speed_sp(motor[R], FORWARD_SPEED );
 	set_tacho_speed_sp(arm_motor, FORWARD_SPEED );
 	set_tacho_speed_sp(sweep_motor, SWEEP_SPEED );
@@ -315,7 +312,7 @@ void *movement_start(void* queues) {
             case MESSAGE_DROP:
                 stop();
                 drop_object();
-\            break;
+            break;
 		}
 	}
 }
