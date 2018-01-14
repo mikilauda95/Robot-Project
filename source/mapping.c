@@ -9,9 +9,9 @@
 #include "messages.h"
 #include "tuning.h"
 
+#define MAX_INCREMENTS 31
 // 1-W indicates objects with an increasing level of certainty
-char *printlist = " r'XX";
-char *object_list = "*ABCDEFGHI";
+char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
@@ -38,14 +38,7 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            if (map[i][j] < UNMAPPED) {
-                //printf("%d", map[i][j]<-9?9:-map[i][j]);
-                printf(" ");
-            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
-                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
-            } else {
-                printf("%c", printlist[map[i][j] - 100]);
-            }
+            printf("%c", printlist[map[i][j]]);
         }
         printf("\n");
     }
@@ -80,15 +73,17 @@ int distance_to_nonempty_tile(float ang, int8_t *tile) {
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
-        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE);
-        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE);
+        y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
+        x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. 
 			// No need to try the other values
             return;
-        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
-            map[y][x] --; // Decrement to indicate strength of emptyness
+        } else if (map[y][x] > OBSTACLE) {
+            // map[y][x] --; // Decrement Obstacles we cannot find anymore
+        } else if (map[y][x] == UNMAPPED) {
+            map[y][x] = EMPTY;
         }
     }
     if (dist < MAX_SCAN_DIST) {
@@ -97,9 +92,11 @@ void update_map(float ang, int dist){
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] < MAX_STRENGTH ) {
-            map[y][x] ++; // Increment to indicate strengt of obstacle
-        } 
+        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++; // Increment Obstacles we have found before
+        }
     }
 }
 
@@ -140,7 +137,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		
 		curr_dist = distance_to_nonempty_tile(curr_ang, &tile);
 
-		// printf("a=%d, cd=%d, tile=%d, objc=%d\n", curr_ang, curr_dist, tile, obj_cnt);
+		printf("a=%d, cd=%d, tile=%d, objc=%d\n", curr_ang, curr_dist, tile, obj_cnt);
 
 		if (IS_OBJECT(tile)) {
 			if (curr_dist > max_dist) {
@@ -150,7 +147,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 			}
 		}
 
-		if (IS_UNMAPPED(tile) && obj_cnt > 0) {
+		if (tile == UNMAPPED && obj_cnt > 0) {
 			--obj_cnt;
 			if (obj_cnt == obj_count_max / 2){
 				obj_cnt = 0;
@@ -178,7 +175,7 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 		// le_ang += angle_offset;
 		// re_ang += angle_offset;
 
-		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - (le_ang - re_ang));
+		int delta = le_ang > re_ang ? (le_ang - re_ang) : (360 - (re_ang - le_ang));
 		*best_ang = (int)(re_ang + 0.5 * (le_ang - re_ang)) % 360;
 		// printf("\t shortest distance was %d, shrinking by %d degrees\n", min_dist, angle_offset);
 		printf("\t target angle angle %d\n", *best_ang);
@@ -232,7 +229,7 @@ void message_handler(uint16_t command, int16_t value) {
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i]--;
+                            map[j][i] = EMPTY;
                         }
                     }
                 }
