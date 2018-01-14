@@ -246,12 +246,6 @@ void message_handler(uint16_t command, int16_t value) {
             }
 
 		break;
-
-		case MESSAGE_PRINT_MAP:
-			printMap2();
-		break;
-	}
-
         case MESSAGE_PRINT_MAP:
             printMap2();
         break;
