@@ -183,14 +183,18 @@ void message_handler(uint16_t command, int16_t value) {
 }
 
 void *mapping_start(void* queues){
-	srand(time(NULL));
+    srand(time(NULL));
 
-	mqd_t* tmp = (mqd_t*)queues;
+    mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
 	queue_mapping_to_main = tmp[1];
 
 	uint16_t command;
 	int16_t value;
+
+    for (int x = 0; x < MAP_SIZE_X; x++) {
+        map[0][x] = WALL;
+    }
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);
