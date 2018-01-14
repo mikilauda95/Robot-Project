@@ -1,8 +1,17 @@
-#define ARENA 0
+#define ARENA_CHOISE 1//0 in arena, 1 the other case
+
 #define ROBOT_START_X 600 // Robot start position in mm
 #define ROBOT_START_Y 300
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
+
+//Tuning parameters for the map
+//Arena case
+#define HOR_SIZE 24
+#define VER_SIZE 40
+//Non-arena case
+#define NO_ARENA_HOR_SIZE 100/5 // In tiles
+#define NO_ARENA_VER_SIZE 500/5 // In tiles
 
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
 #define TURN_SPEED 250 

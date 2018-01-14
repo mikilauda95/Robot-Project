@@ -1,5 +1,3 @@
-//TODO: transform the update function so that it takes as arguments x and y and just update the map with the values corrected
-//
 #include <stdio.h>
 
 #include <stdlib.h>
@@ -13,8 +11,6 @@
 #include "tuning.h"
 
 
-#define HOR_SIZE 24
-#define VER_SIZE 40
 #define MAX_DELTA_ANG 4
 
 char *printlist = " r'XX+|_ ";
@@ -57,7 +53,7 @@ void filter_map(int option){
         }
     }    
 	if (option==ARENA) {
-		//mapping the horizontal lines
+		//filtering the horizontal lines
 		for (i = 1; i < HOR_SIZE-1 ; ++i) {
 			/*printf("debug\n");*/
 			map[1][i]=CERTAIN_EMPTY;
@@ -72,13 +68,27 @@ void filter_map(int option){
 			map[i][1]=CERTAIN_EMPTY;
 		}
 	} 
+	else if (option==NO_ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < NO_ARENA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=CERTAIN_EMPTY;
+		}
+		for (i = 1; i < NO_ARENA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][NO_ARENA_HOR_SIZE+1]=CERTAIN_EMPTY;
+			map[i][NO_ARENA_HOR_SIZE-1]=CERTAIN_EMPTY;
+			map[i][1]=CERTAIN_EMPTY;
+		}
+		
+	}
 }
 
 
 void initialize_map(int option){
+	int	i;
 	if (option==ARENA) {//arena map hardcoding
 		//mapping the horizontal lines
-		int	i;
 		for (i = 0; i < HOR_SIZE ; i++) {
 			map[0][i]=HOR_WALL;
 			map[VER_SIZE][i]=HOR_WALL;
@@ -88,6 +98,16 @@ void initialize_map(int option){
 			map[i][HOR_SIZE]=VER_WALL;
 			map[i][0]=VER_WALL;
 		}
+	}
+	else if(option==NO_ARENA){
+		for (i = 0; i < NO_ARENA_HOR_SIZE; ++i) {
+			map[0][i]=HOR_WALL;	
+		}
+		for (i = 0; i < NO_ARENA_VER_SIZE; ++i) {
+			map[i][0]=VER_WALL;
+			map[i][NO_ARENA_HOR_SIZE]=VER_WALL;
+		}
+
 	}
 }
 
@@ -284,7 +304,7 @@ void *mapping_start(void* queues){
 	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
 	queue_mapping_to_main = tmp[1];
-	initialize_map(ARENA);
+	initialize_map(ARENA_CHOISE);
 	printf("initial map\n");
 	printMap2();
 	f = fopen("objects.txt", "w");
