@@ -29,7 +29,7 @@ pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
-
+int no_route_found_count = 0;
 int scan_count = 0;
 
 
@@ -67,6 +67,10 @@ void event_handler(uint16_t command, int16_t value) {
 		case MESSAGE_ANGLE:
 			// We receive the angle in centidegrees. But main will work with degrees
 			current_heading = (int)(value/10.0 + 0.5);
+			break;
+		case MESSAGE_NO_ROUTE_FOUND:
+			no_route_found_count;
+			
 			break;
 	}
 

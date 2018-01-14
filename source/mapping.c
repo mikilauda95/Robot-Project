@@ -153,7 +153,8 @@ void find_optimal_target(int *tgt_ang, int *tgt_dist) {
 		printf("\t -> choosing path at angle %d\n", *tgt_ang);
 	} else {
 		*tgt_ang = (rand() % 8) * 45;
-		printf("\t no path found. Random angle: %d\n", *tgt_ang);		
+		printf("\t no path found. Random angle: %d\n", *tgt_ang);
+		send_message(queue_mapping_to_main, MESSAGE_NO_ROUTE_FOUND, 0);
 	}
 
 	*tgt_dist = distance_to_unmapped_tile(*tgt_ang);
