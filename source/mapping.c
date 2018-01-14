@@ -12,13 +12,9 @@
 #include "messages.h"
 #include "tuning.h"
 
-
-#define HOR_SIZE 24
-#define VER_SIZE 40
-#define MAX_DELTA_ANG 4
-
-char *printlist = " r'XX+|_ ";
-char *object_list = "0ABCDEFGHI";
+#define MAX_INCREMENTS 31
+// 1-W indicates objects with an increasing level of certainty
+char *printlist = "* r'?X????123456789ABCDEFGHIJKLMNOPQRSTUVW";
 
 int8_t map[MAP_SIZE_Y][MAP_SIZE_X] = {UNMAPPED};
 
@@ -30,67 +26,9 @@ int obj_x, obj_y;
 int16_t data_pair[2] = {-1, -1};
 int16_t pos_pair[2] = {-1, -1};
 int16_t drop_pair[2] = {-1, -1};
-//
-//USED FOR THE RECALIBRATION
-//
-int min_distance_x=3000;//set to a very large number
-int min_distance_y=3000;//set to a very large number
-int correction_x=0;
-int correction_y=0;
-uint8_t tmp_map[MAP_SIZE_Y][MAP_SIZE_X];
 
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
-FILE * f;
-
-void filter_map(int option){
-	
-    int i;
-    // Clear out tiles adjacent to our dropped object 
-    for (int j = obj_x-2; j <= obj_x+2; j++) {
-        for (int k = obj_y-2; k <= obj_y+2; k++) {
-            if (j > 0 && j < MAP_SIZE_X  && k > 0 && k < MAP_SIZE_Y) {
-                if (map[k][j] < MAX_STRENGTH) {
-                    map[k][j] = CERTAIN_EMPTY;
-                }
-            }
-        }
-    }    
-	if (option==ARENA) {
-		//mapping the horizontal lines
-		for (i = 1; i < HOR_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[1][i]=CERTAIN_EMPTY;
-			map[VER_SIZE+1][i]=CERTAIN_EMPTY;
-			map[VER_SIZE-1][i]=CERTAIN_EMPTY;
-		}
-		//mapping the vertical lines
-		for (i = 1; i < VER_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[i][HOR_SIZE+1]=CERTAIN_EMPTY;
-			map[i][HOR_SIZE-1]=CERTAIN_EMPTY;
-			map[i][1]=CERTAIN_EMPTY;
-		}
-	} 
-}
-
-
-void initialize_map(int option){
-	if (option==ARENA) {//arena map hardcoding
-		//mapping the horizontal lines
-		int	i;
-		for (i = 0; i < HOR_SIZE ; i++) {
-			map[0][i]=HOR_WALL;
-			map[VER_SIZE][i]=HOR_WALL;
-		}
-		//mapping the vertical lines
-		for (i = 0; i < VER_SIZE ; i++) {
-			map[i][HOR_SIZE]=VER_WALL;
-			map[i][0]=VER_WALL;
-		}
-	}
-}
-
 
 void printMap(){
 	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
@@ -106,14 +44,7 @@ void printMap2(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
-            if (map[i][j] < UNMAPPED) {
-                //printf("%d", map[i][j]<-9?9:-map[i][j]);
-                printf(" ");
-            } else if (map[i][j] >= UNMAPPED && map[i][j] < MAX_STRENGTH) {
-                printf("%c", object_list[map[i][j]>9?9:map[i][j]]);
-            } else {
-                printf("%c", printlist[map[i][j] - 100]);
-            }
+            printf("%c", printlist[map[i][j]]);
         }
         printf("\n");
     }
@@ -127,63 +58,39 @@ int distance_from_unmapped_tile(float ang) {
 
         if (map[y][x] == UNMAPPED) {
             return dist;
-        } else if (map[y][x] > UNMAPPED) {
+        } else if (map[y][x] != EMPTY) {
             return -1;
         }
 
 	}
 }
 
-void readjust_to_walls(int x, int y){
-    int i;
-    //calibrate to vertical walls
-    for (i = -1; i <= 1; ++i) {
-        if (map[y][x+2-i]==VER_WALL) {
-            printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, i);
-            printf("X coordinate before readjustement= %d\n", robot_x);
-            robot_x +=(i)*50;
-            printf("X coordinate after readjustement= %d\n", robot_x);
-        }
-    } 
-    //calibrate to horizontal walls
-    for (i = -2; i <= 2; ++i) {
-        if (map[y+i][x]==HOR_WALL) {
-            printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
-            printf("Y coordinate before readjustement= %d\n", robot_y);
-            robot_y+=(i)*50;
-            printf("Y coordinate after readjustement= %d\n", robot_y);
-        }
-    }
-}
-
-
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
         y = (int)((((i+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((i+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
-        //we add 0.5 in order to have the right rounding
 
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {
             // Return if a value is out of the map or we have found an obstacle there. No need to try the other values
             return;
-        } else if (map[y][x] < MAX_STRENGTH && map[y][x] > -MAX_STRENGTH) {
-            map[y][x] --; // Decrement to indicate strength of emptyness
+        } else if (map[y][x] > OBSTACLE) {
+            map[y][x] --; // Decrement Obstacles we cannot find anymore
+        } else if (map[y][x] == UNMAPPED) {
+            map[y][x] = EMPTY;
         }
     }
     if (dist < MAX_SCAN_DIST) {
-        //only recalibrate when it is almost perpendicular to the wall for the first 5 centimeters
-        if (abs(ang-90)<MAX_DELTA_ANG||abs(ang-180)<MAX_DELTA_ANG||abs(ang-270)<MAX_DELTA_ANG||ang<(MAX_DELTA_ANG/2)||(360-ang<MAX_DELTA_ANG/2)) {
-            readjust_to_walls(x,y);
-        }
         y = (int)((((dist+SONAR_OFFSET) * sin(ang/180 * M_PI)) + robot_y)/TILE_SIZE + 0.5);
         x = (int)((((dist+SONAR_OFFSET) * cos(ang/180 * M_PI)) + robot_x)/TILE_SIZE + 0.5);
         if (x < 0 || x >= MAP_SIZE_X || y < 0 || y >= MAP_SIZE_Y) {  
             return;
         }
-        if ( map[y][x] < MAX_STRENGTH ) {
-            map[y][x] ++; // Increment to indicate strengt of obstacle
-        } 
+        if ( map[y][x] == EMPTY || map[y][x] == UNMAPPED) {
+            map[y][x] = OBSTACLE;
+        } else if (map[y][x] >= OBSTACLE && map[y][x] < (MAX_INCREMENTS + OBSTACLE))  {
+            map[y][x]++; // Increment Obstacles we have found before
+        }
     }
 }
 
@@ -235,7 +142,7 @@ void message_handler(uint16_t command, int16_t value) {
                 for (int i = x-1; i < x+1; i++) {
                     for (int j = y-1; j < y+1; j++) {
                         if (map[j][i] == UNMAPPED) {
-                            map[j][i]--;
+                            map[j][i] = EMPTY;
                         }
                     }
                 }
@@ -259,7 +166,6 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
-            filter_map(ARENA);
             printMap2();
         break;
         case MESSAGE_DROP_X:
@@ -270,7 +176,7 @@ void message_handler(uint16_t command, int16_t value) {
                 obj_y=(int)(drop_pair[1]/TILE_SIZE);
                 printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
 
-                map[obj_y][obj_x]=OBJECT_DROPPED;
+                map[obj_y][obj_x]=DROPPED_OBJECT;
                 drop_pair[0] = -1;
                 drop_pair[1] = -1;
             }
@@ -284,18 +190,9 @@ void *mapping_start(void* queues){
 	mqd_t* tmp = (mqd_t*)queues;
 	queue_from_main = tmp[0];
 	queue_mapping_to_main = tmp[1];
-	initialize_map(ARENA);
-	printf("initial map\n");
-	printMap2();
-	f = fopen("objects.txt", "w");
 
 	uint16_t command;
 	int16_t value;
-
-	// hard-code the virtual fence
-	/*for (int x = 0; x < MAP_SIZE_X; x++) {*/
-	/*map[0][x] = OBSTACLE;*/
-	/*}*/
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);
