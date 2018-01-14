@@ -1,7 +1,7 @@
 #define UNMAPPED 0
 #define EMPTY 1
 #define ROBOT_POSITION 2
-#define OBJECT 3
+#define DROPPED_OBJECT 3
 #define WALL 5
 #define OBSTACLE 10
 

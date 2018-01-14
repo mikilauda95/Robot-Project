@@ -17,6 +17,7 @@
 #define STATE_RUNNING 2
 #define STATE_SCANNING 3
 #define STATE_STOPPED 4
+#define STATE_DROP 5
 
 mqd_t queue_main_to_move, queue_move_to_main;
 mqd_t queue_main_to_bt, queue_bt_to_main;
@@ -27,7 +28,7 @@ pthread_t sensors_thread, movement_thread, bluetooth_thread, mapping_thread;
 int target_heading = START_HEADING; // Start facing forward
 int current_heading;
 int state;
-
+int scan_counter = 0;
 void wait_for_queues(uint16_t *command, int16_t *value) {
 
 	static int current_queue_index = 0;
@@ -80,8 +81,13 @@ void event_handler(uint16_t command, int16_t value) {
 				} else {
 					//printf("Turn complete! \n");
 					send_message(queue_main_to_move, MESSAGE_HEADING, current_heading);
-					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-					state = STATE_RUNNING;
+					if (scan_counter == SCANS_BEFORE_RELEASE) {
+						send_message(queue_main_to_move, MESSAGE_DROP, 0);
+						state = STATE_DROP;
+					} else {
+						send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+						state = STATE_RUNNING;
+					} 
 				}
 			}
 			
@@ -106,10 +112,27 @@ void event_handler(uint16_t command, int16_t value) {
 				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
 				send_message(queue_main_to_move, MESSAGE_STOP, 0);
 				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+				scan_counter ++;
 				state = STATE_STOPPED;
+			
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
+			}
+		break;
+
+		case STATE_DROP:
+			switch (command) {
+				case MESSAGE_DROP_X:
+				case MESSAGE_DROP_Y:
+					send_message(queue_main_to_mapping, command, value);
+				break;
+				case MESSAGE_DROP_COMPLETE:
+					printf("drop complete\n");
+					send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+					send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+					state = STATE_RUNNING;	
+				break;
 			}
 		break;
 
@@ -206,8 +229,15 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
-	state = STATE_SCANNING;	
+	// Start by scanning in the small arena. Start by running forward in the big one
+	if (STADIUM_TYPE == 0) {
+		send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+		state = STATE_SCANNING;	
+	} else {
+		send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+		send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+		state = STATE_RUNNING;
+	}
 
 	uint16_t command;
 	int16_t value;

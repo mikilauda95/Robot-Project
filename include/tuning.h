@@ -1,3 +1,4 @@
+#define ARENA 0
 #define ROBOT_START_X 600 // Robot start position in mm
 #define ROBOT_START_Y 600
 #define START_HEADING 90 // Robot start heading in degrees
@@ -12,6 +13,12 @@
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 68
+#define ARM_MOTOR_PORT 67
+#define OBJECT_OFFSET 200
+
+#define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
+
+#define SCANS_BEFORE_RELEASE 2
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
 
