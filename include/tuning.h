@@ -10,8 +10,8 @@
 #define HOR_SIZE 24
 #define VER_SIZE 40
 //Non-arena case
-#define NO_ARENA_HOR_SIZE 100/5 // In tiles
-#define NO_ARENA_VER_SIZE 500/5 // In tiles
+#define NO_ARENA_HOR_SIZE 24// In tiles
+#define NO_ARENA_VER_SIZE 10 // In tiles
 
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
 #define TURN_SPEED 250 
