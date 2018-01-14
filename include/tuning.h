@@ -3,6 +3,10 @@
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
 
+#define MAP_SIZE_X 80
+#define MAP_SIZE_Y 80
+#define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
+
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
 #define TURN_SPEED 250 
 #define SCAN_SPEED 100
@@ -11,5 +15,7 @@
 #define SWEEP_MOTOR_PORT 65
 #define LEFT_MOTOR_PORT 66
 #define RIGHT_MOTOR_PORT 68
+
+#define CURRENT_ENVIRONMENT 0 // 0: small arena, 1: big arena
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
