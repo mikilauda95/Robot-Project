@@ -229,8 +229,8 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_DROP, 0);
-	state = STATE_DROP;	
+	send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+	state = STATE_SCANNING;	
 
 	uint16_t command;
 	int16_t value;

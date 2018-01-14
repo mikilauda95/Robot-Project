@@ -279,7 +279,7 @@ void message_handler(uint16_t command, int16_t value) {
         break;
 
         case MESSAGE_PRINT_MAP:
-            filter_map(ARENA);
+            filter_map(ARENA_CHOISE);
             printMap2();
         break;
         case MESSAGE_DROP_X:

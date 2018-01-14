@@ -1,4 +1,5 @@
-#define ARENA_CHOISE 1//0 in arena, 1 the other case
+//0 in arena, 1 the other case
+#define ARENA_CHOISE 1
 
 #define ROBOT_START_X 600 // Robot start position in mm
 #define ROBOT_START_Y 300

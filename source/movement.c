@@ -319,8 +319,6 @@ void *movement_start(void* queues) {
                 printf("RECEIVED MESSAGE TO DROP OBJECT\n");
                 stop();
                 drop_object();
-                printf("DROP FINISHED\n");
-                send_message(movement_queue_to_main, MESSAGE_DROP_COMPLETE, 0);
             break;
 		}
 	}
