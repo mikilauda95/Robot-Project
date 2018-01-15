@@ -1,5 +1,5 @@
 #define ARENA 0
-#define ROBOT_START_X 800 // Robot start position in mm
+#define ROBOT_START_X 1700 // Robot start position in mm
 #define ROBOT_START_Y 100
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
