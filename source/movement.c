@@ -239,7 +239,7 @@ void drop_object()
     set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
     
 	wait_for_motor(arm_motor);
-	set_tacho_position_sp(arm_motor, 90);
+	set_tacho_position_sp(arm_motor, 180);
 	set_tacho_command_inx(arm_motor, TACHO_RUN_TO_REL_POS);
 	wait_for_motor(arm_motor);
 	int16_t obj_x = coord.x + OBJECT_OFFSET * cos((heading + 180)/180.0 * M_PI);

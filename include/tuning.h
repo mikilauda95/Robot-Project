@@ -3,10 +3,12 @@
 #define ROBOT_START_Y 250
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
-#define STADIUM_TYPE 0 // 0 For small arena, 1 for big
+#define STADIUM_TYPE 1 // 0 For small arena, 1 for big
 
-#define MAP_SIZE_X 24
-#define MAP_SIZE_Y 40
+#define MAP_SIZE_X 50
+#define MAP_SIZE_Y 80
+// #define MAP_SIZE_X 24
+// #define MAP_SIZE_Y 40
 #define TILE_SIZE 50.0 // Size of each tile in mm. With decimal to ensure float division
 
 #define FORWARD_SPEED 350 // Wheel speed when running forward. Max is 1050
@@ -22,8 +24,8 @@
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
 
-#define SCANS_BEFORE_RELEASE 2
-#define SEARCHES_BEFORE_MAP_SEND 3 	// Number of failed target searches before map is 
+#define SCANS_BEFORE_RELEASE 3
+#define SEARCHES_BEFORE_MAP_SEND 2 	// Number of failed target searches before map is 
 									// considered done and sent to the server
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
