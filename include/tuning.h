@@ -23,11 +23,11 @@
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
 
 #define SCANS_BEFORE_RELEASE 2
+#define SEARCHES_BEFORE_MAP_SEND 3 	// Number of failed target searches before map is 
+									// considered done and sent to the server
 
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
 
 // Stadium sizes in number of tiles
 #define START_AREA_VER_SIZE 10
-#define START_AREA_HOR_SIZE 50
-#define ARENA_VER_SIZE 40
-#define ARENA_HOR_SIZE 24
+#define START_AREA_HOR_SIZE MAP_SIZE_X

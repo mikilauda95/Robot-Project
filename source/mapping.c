@@ -211,64 +211,32 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 	*best_ang %= 360;
 }
 
-void filter_map(int option){	
-    int i;
-	if (option==ARENA) {
-		//filtering the horizontal lines
-		for (i = 1; i < ARENA_HOR_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[1][i]=EMPTY;
-			map[ARENA_VER_SIZE-1][i]=EMPTY;
-		}
-		//mapping the vertical lines
-		for (i = 1; i < ARENA_VER_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[i][ARENA_HOR_SIZE-1]=EMPTY;
-			map[i][1]=EMPTY;
-		}
-	} 
-	else if (option==NO_ARENA) {
-		//filtering the horizontal lines
-		for (i = 1; i < START_AREA_HOR_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[1][i]=EMPTY;
-		}
-		for (i = 1; i < START_AREA_VER_SIZE-1 ; ++i) {
-			/*printf("debug\n");*/
-			map[i][START_AREA_HOR_SIZE-1]=EMPTY;
-			map[i][1]=EMPTY;
-		}
-		
-	}
-    // TODO add filtering that removes objects found next to our dropped object
-}
-
 void initialize_map(int option){
 	int	i;
 	if (option==ARENA) {//arena map hardcoding
 		//mapping the horizontal lines
-		for (i = 0; i < ARENA_HOR_SIZE ; i++) {
+		for (i = 0; i < MAP_SIZE_X ; i++) {
 			map[0][i]=WALL;
-			map[ARENA_VER_SIZE][i]=WALL;
+			map[MAP_SIZE_Y - 1][i]=WALL;
 		}
 		//mapping the vertical lines
-		for (i = 0; i < ARENA_VER_SIZE ; i++) {
-			map[i][ARENA_HOR_SIZE]=WALL;
+		for (i = 0; i < MAP_SIZE_Y ; i++) {
+			map[i][MAP_SIZE_X - 1]=WALL;
 			map[i][0]=WALL;
 		}
 	}
 	else if(option==NO_ARENA){
-        for (int x = 1; x < START_AREA_HOR_SIZE; x++) {
-            for (int y = 1; y < START_AREA_VER_SIZE; y++) {
+        for (int x = 1; x < MAP_SIZE_X; x++) {
+            for (int y = 1; y < MAP_SIZE_Y; y++) {
                 map[x][y] = EMPTY;
             }
         }
-		for (i = 0; i < START_AREA_HOR_SIZE; ++i) {
+		for (i = 0; i < MAP_SIZE_X; ++i) {
 			map[0][i]=WALL;	
 		}
-		for (i = 0; i < START_AREA_VER_SIZE; ++i) {
+		for (i = 0; i < MAP_SIZE_Y; ++i) {
 			map[i][0]=WALL;
-			map[i][START_AREA_HOR_SIZE]=WALL;
+			map[i][MAP_SIZE_X - 1]=WALL;
 		}
 
 	}
