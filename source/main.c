@@ -43,7 +43,7 @@ void wait_for_queues(uint16_t *command, int16_t *value) {
 		queue_bt_to_main,
 		queue_mapping_to_main
 	};
-	static uint8_t n_queues = sizeof(read_queues) / sizeof(mqd_t);
+	uint8_t n_queues = sizeof(read_queues) / sizeof(mqd_t);
 
 	current_queue_index %= n_queues;
 
@@ -70,7 +70,7 @@ void event_handler(uint16_t command, int16_t value) {
 			break;
 		case MESSAGE_NO_CLEAR_ROUTE_FOUND:
 			no_route_found_count++;
-			if(no_route_found_count == 2) {
+			if(no_route_found_count == SEARCHES_BEFORE_MAP_SEND) {
 				printf("Scan count %d, sending map...\n", scan_count);
 				send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
 				state = STATE_DONE;
