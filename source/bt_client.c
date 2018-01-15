@@ -11,6 +11,7 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
+#include "mapping.h"
 #include "bt_client.h"
 #include "tuning.h"
 
@@ -168,6 +169,7 @@ void* bt_client(void *queues){
 	int cnt = 0;
 
 	for(;;){
+		char r, g, b;
 		
 		get_message(bt_from_main_queue, &command, &value);
 
@@ -186,7 +188,32 @@ void* bt_client(void *queues){
 			break;
 			break;
 			case MESSAGE_MAP_POINT: {
-				_send_mapdata(map_current_x, map_current_y, value, value, value);
+
+				switch(value) {
+					case EMPTY:
+					case ROBOT_POSITION:
+						r = 255;
+						g = 255;
+						b = 255;
+					break;
+					case UNMAPPED:
+						r = 255;
+						g = 0;
+						b = 0;
+					break;
+					case DROPPED_OBJECT:
+						r = 0;
+						g = 255;
+						b = 0;
+					break;
+					default:
+						r = 0;
+						g = 0;
+						b = 0;
+					break;
+				}
+
+				_send_mapdata(map_current_x, map_current_y, r, g, b);
 				map_current_x++;
 				if (map_current_x == MAP_SIZE_X) {
 					map_current_x = 0;

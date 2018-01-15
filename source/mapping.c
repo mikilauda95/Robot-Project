@@ -59,7 +59,6 @@ void* map_sender(void* what){
 
 	for (int yi = MAP_SIZE_Y-1; yi >= 0; yi--) {
         for (int xi = 0; xi < MAP_SIZE_X; xi++){
-			val = IS_OBJECT(map[yi][xi]) * 255;
 			send_message(queue_mapping_to_bt, MESSAGE_MAP_POINT, val);
         }
     }
@@ -226,17 +225,17 @@ void initialize_map(int option){
 		}
 	}
 	else if(option==NO_ARENA){
-        for (int x = 1; x < MAP_SIZE_X; x++) {
-            for (int y = 1; y < MAP_SIZE_Y; y++) {
+        for (int x = 1; x < START_AREA_HOR_SIZE; x++) {
+            for (int y = 1; y < START_AREA_VER_SIZE; y++) {
                 map[y][x] = EMPTY;
             }
         }
-		for (i = 0; i < MAP_SIZE_X; ++i) {
+		for (i = 0; i < START_AREA_HOR_SIZE; ++i) {
 			map[0][i]=WALL;	
 		}
-		for (i = 0; i < MAP_SIZE_Y; ++i) {
+		for (i = 0; i < START_AREA_VER_SIZE; ++i) {
 			map[i][0]=WALL;
-			map[i][MAP_SIZE_X - 1]=WALL;
+			map[i][START_AREA_HOR_SIZE - 1]=WALL;
 		}
 
 	}
