@@ -138,6 +138,7 @@ void event_handler(uint16_t command, int16_t value) {
 				case MESSAGE_DROP_X:
 				case MESSAGE_DROP_Y:
 					send_message(queue_main_to_mapping, command, value);
+					send_message(queue_main_to_bt, command, value);
 				break;
 				case MESSAGE_DROP_COMPLETE:
 					printf("drop complete\n");
@@ -224,7 +225,7 @@ int main() {
 		exit(1);
 	}
 	bt_wait_for_start();
-
+	
 	queue_sensors_to_main 		= init_queue("/sensors", O_CREAT | O_RDWR | O_NONBLOCK);
 	queue_main_to_move 			= init_queue("/movement_from_main", O_CREAT | O_RDWR);
 	queue_move_to_main 			= init_queue("/movement_to_main", O_CREAT | O_RDWR | O_NONBLOCK);
@@ -247,9 +248,15 @@ int main() {
 
 	signal(SIGINT, INThandler); // Setup INThandler to run on ctrl+c
 
-	send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
-	send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
-	state = STATE_RUNNING;	
+	// Start by scanning in the small arena. Start by running forward in the big one
+	if (STADIUM_TYPE == 0) {
+		send_message(queue_main_to_move, MESSAGE_SCAN, 0);
+		state = STATE_SCANNING;	
+	} else {
+		send_message(queue_main_to_move, MESSAGE_TARGET_DISTANCE, 500);
+		send_message(queue_main_to_move, MESSAGE_FORWARD, 0);
+		state = STATE_RUNNING;
+	}
 
 	uint16_t command;
 	int16_t value;

@@ -3,6 +3,7 @@
 #define ROBOT_START_Y 600
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
+#define STADIUM_TYPE 0 // 0 For small arena, 1 for big
 
 #define MAP_SIZE_X 24
 #define MAP_SIZE_Y 40
@@ -23,6 +24,10 @@
 
 #define SCANS_BEFORE_RELEASE 2
 
-#define CURRENT_ENVIRONMENT 0 // 0: small arena, 1: big arena
-
 #define SENSOR_UPDATE_TIME 40 // Time delay between subsequent sensor reads in ms
+
+// Stadium sizes in number of tiles
+#define START_AREA_VER_SIZE 10
+#define START_AREA_HOR_SIZE 50
+#define ARENA_VER_SIZE 40
+#define ARENA_HOR_SIZE 24
