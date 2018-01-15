@@ -8,7 +8,7 @@
 // #define BT_SERV_ADDR   "DC:53:60:AD:61:90" // Bluetooth MAC address of server (run hcitool dev on server) SMALL ARENA
 #define BT_SERV_ADDR   "00:1A:7D:DA:71:06" // Bluetooth MAC address of server (run hcitool dev on server) BIG ARENA
 // #define BT_SERV_ADDR   "34:13:E8:5F:51:4E" // Bluetooth MAC address of server (run hcitool dev on server) XPS
-#define BT_TEAM_ID     1                   // team identifier placeholder
+#define BT_TEAM_ID     6                   // team identifier placeholder
 #define BT_MSG_LEN_MAX 64
 
 // Messages from SERVER TO CLIENT as defined in server code
