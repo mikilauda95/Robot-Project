@@ -211,6 +211,69 @@ void find_optimal_target(int *best_ang, int *best_dist) {
 	*best_ang %= 360;
 }
 
+void filter_map(int option){	
+    int i;
+	if (option==ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < ARENA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+			map[ARENA_VER_SIZE-1][i]=EMPTY;
+		}
+		//mapping the vertical lines
+		for (i = 1; i < ARENA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][ARENA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+	} 
+	else if (option==NO_ARENA) {
+		//filtering the horizontal lines
+		for (i = 1; i < START_AREA_HOR_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[1][i]=EMPTY;
+		}
+		for (i = 1; i < START_AREA_VER_SIZE-1 ; ++i) {
+			/*printf("debug\n");*/
+			map[i][START_AREA_HOR_SIZE-1]=EMPTY;
+			map[i][1]=EMPTY;
+		}
+		
+	}
+    // TODO add filtering that removes objects found next to our dropped object
+}
+
+void initialize_map(int option){
+	int	i;
+	if (option==ARENA) {//arena map hardcoding
+		//mapping the horizontal lines
+		for (i = 0; i < ARENA_HOR_SIZE ; i++) {
+			map[0][i]=WALL;
+			map[ARENA_VER_SIZE][i]=WALL;
+		}
+		//mapping the vertical lines
+		for (i = 0; i < ARENA_VER_SIZE ; i++) {
+			map[i][ARENA_HOR_SIZE]=WALL;
+			map[i][0]=WALL;
+		}
+	}
+	else if(option==NO_ARENA){
+        for (int x = 1; x < START_AREA_HOR_SIZE; x++) {
+            for (int y = 1; y < START_AREA_VER_SIZE; y++) {
+                map[x][y] = EMPTY;
+            }
+        }
+		for (i = 0; i < START_AREA_HOR_SIZE; ++i) {
+			map[0][i]=WALL;	
+		}
+		for (i = 0; i < START_AREA_VER_SIZE; ++i) {
+			map[i][0]=WALL;
+			map[i][START_AREA_HOR_SIZE]=WALL;
+		}
+
+	}
+}    
+
 void message_handler(uint16_t command, int16_t value) {
 	
 	switch (command) {
@@ -275,8 +338,8 @@ void message_handler(uint16_t command, int16_t value) {
         case MESSAGE_DROP_Y:
             drop_pair[command==MESSAGE_DROP_X?0:1] = value;
             if (drop_pair[0] != -1 && drop_pair[1] != -1) {
-                obj_x=(int)(drop_pair[0]/TILE_SIZE);
-                obj_y=(int)(drop_pair[1]/TILE_SIZE);
+                obj_x=(int)(drop_pair[0]/TILE_SIZE + 0.5);
+                obj_y=(int)(drop_pair[1]/TILE_SIZE + 0.5);
                 printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
 
                 map[obj_y][obj_x]=DROPPED_OBJECT;
@@ -295,12 +358,10 @@ void *mapping_start(void* queues){
     queue_mapping_to_main = tmp[1];
     queue_mapping_to_bt = tmp[2];
 
-	uint16_t command;
-	int16_t value;
-
-    for (int x = 0; x < MAP_SIZE_X; x++) {
-        map[0][x] = WALL;
-    }
+    uint16_t command;
+    int16_t value;
+    
+    initialize_map(STADIUM_TYPE);
 
 	while(1) {
 		get_message(queue_from_main, &command, &value);

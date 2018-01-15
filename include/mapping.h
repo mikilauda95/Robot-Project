@@ -5,6 +5,8 @@
 #define WALL 5
 #define OBSTACLE 10
 
+#define ARENA 0
+#define NO_ARENA 1
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
 #define IS_EMPTY(tile) ((tile == EMPTY) || (tile == ROBOT_POSITION))
