@@ -61,9 +61,7 @@ void* map_sender(void* what){
         for (int xi = 0; xi < MAP_SIZE_X; xi++){
 			val = IS_OBJECT(map[yi][xi]) * 255;
 			send_message(queue_mapping_to_bt, MESSAGE_MAP_POINT, val);
-            printf("%1d", val / 255);
         }
-        printf("\n");
     }
 	printf("map sender thread finished\n");
 }

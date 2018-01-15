@@ -70,7 +70,7 @@ void event_handler(uint16_t command, int16_t value) {
 			break;
 		case MESSAGE_NO_CLEAR_ROUTE_FOUND:
 			no_route_found_count++;
-			if(no_route_found_count == 1) {
+			if(no_route_found_count == 2) {
 				printf("Scan count %d, sending map...\n", scan_count);
 				send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
 				state = STATE_DONE;
@@ -122,26 +122,11 @@ void event_handler(uint16_t command, int16_t value) {
 
 		case STATE_SCANNING:
 			if (command == MESSAGE_SCAN_COMPLETE) {
-
-				
-
-
-
-
-				printf("Scan count %d, sending map...\n", scan_count);
-				// send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
-				send_message(queue_main_to_mapping, MESSAGE_SEND_MAP, 0);
-				state = STATE_DONE;
-
-
-
-				// scan_count++;
-
-				// send_message(queue_main_to_move, MESSAGE_STOP, 0);
-				// send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
-
-				// state = STATE_STOPPED;
-
+				send_message(queue_main_to_mapping, MESSAGE_PRINT_MAP, 0);
+				send_message(queue_main_to_move, MESSAGE_STOP, 0);
+				send_message(queue_main_to_mapping, MESSAGE_SCAN_COMPLETE, 0);
+				scan_count++;
+				state = STATE_STOPPED;
 			} else if (command == MESSAGE_ANGLE || command == MESSAGE_SONAR) {
 				// When scanning, forward angle and distance. If these are not alternating, something is wrong
 				send_message(queue_main_to_mapping, command, value);
