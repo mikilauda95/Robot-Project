@@ -198,7 +198,7 @@ void* bt_client(void *queues){
 			break;
 			case MESSAGE_DROP_X:
 			case MESSAGE_DROP_Y:
-				drop_pair[command==MESSAGE_DROP_X?0:1]=(uint16_t)value;
+				drop_pair[command==MESSAGE_DROP_X?0:1]=(uint16_t)(value/50.0 + 0.5);
 				if (drop_pair[0] != 0 && drop_pair[1] != 0) {
 					_send_obstacle(drop_pair[0], drop_pair[1]);
 					drop_pair[0] = 0;
