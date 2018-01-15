@@ -1,6 +1,6 @@
 #define ARENA 0
 #define ROBOT_START_X 600 // Robot start position in mm
-#define ROBOT_START_Y 600
+#define ROBOT_START_Y 250
 #define START_HEADING 90 // Robot start heading in degrees
 #define MAX_SCAN_DIST 500 // Max distance in mm
 #define STADIUM_TYPE 0 // 0 For small arena, 1 for big
@@ -31,3 +31,9 @@
 // Stadium sizes in number of tiles
 #define START_AREA_VER_SIZE 10
 #define START_AREA_HOR_SIZE MAP_SIZE_X
+
+#define COLOR_RED 0
+#define COLOR_GREEN 1
+#define COLOR_BLUE 2
+#define COLOR_BLACK 3
+#define COLOR_WHITE 4
