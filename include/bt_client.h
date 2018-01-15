@@ -19,6 +19,7 @@
 #define BT_MSG_POSITION	4
 #define BT_MSG_MAPDATA	5
 #define BT_MSG_MAPDONE 	6
+#define BT_MSG_OBSTACLE 7
 
 /* Initializes bluetooth connection to server with address as defined in BT_SERV_ADDR.
  */
