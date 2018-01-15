@@ -90,6 +90,28 @@ static void _send_mapdone(void) {
 	printf("BT: send map done\n");
 }
 
+static void _send_obstacle(uint16_t x, uint16_t y) {
+	static uint16_t msgId = 0;
+	char string[58];
+
+	*((uint16_t *) string) = msgId++;
+	string[2] = BT_TEAM_ID;
+	string[3] = 0xFF;
+	string[4] = BT_MSG_OBSTACLE;
+	string[5] = 0;
+	string[6] = x;
+	string[7] = 0x00;
+	string[8] = y;
+	string[9] = 0x00;
+	int ret = write(sock, string, 10);
+	if (ret < 0) {
+		fprintf(stderr, "BT: Failed to write to server!\r\n");
+		return;
+	}
+	printf("BT: send obstacle done\n");
+}
+
+
 int bt_wait_for_start() {
 	char string[BT_MSG_LEN_MAX];
 	_read_from_server(string, 9);
@@ -139,6 +161,7 @@ void* bt_client(void *queues){
 	uint16_t map_x_dim;
 	uint16_t map_y_dim;
 	uint16_t map_current_x, map_current_y;
+	uint16_t drop_pair[2] = {0, 0};
 	bool should_send_position = false;
 
 	for(;;){
@@ -172,6 +195,15 @@ void* bt_client(void *queues){
 					map_current_y = 0;
 				}
 			}
+			break;
+			case MESSAGE_DROP_X:
+			case MESSAGE_DROP_Y:
+				drop_pair[command==MESSAGE_DROP_X?0:1]=(uint16_t)value;
+				if (drop_pair[0] != 0 && drop_pair[1] != 0) {
+					_send_obstacle(drop_pair[0], drop_pair[1]);
+					drop_pair[0] = 0;
+					drop_pair[1] = 0;
+				}
 			break;
 		}
 

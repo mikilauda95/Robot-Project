@@ -126,6 +126,7 @@ void event_handler(uint16_t command, int16_t value) {
 				case MESSAGE_DROP_X:
 				case MESSAGE_DROP_Y:
 					send_message(queue_main_to_mapping, command, value);
+					send_message(queue_main_to_bt, command, value);
 				break;
 				case MESSAGE_DROP_COMPLETE:
 					printf("drop complete\n");
