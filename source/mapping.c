@@ -242,7 +242,7 @@ void initialize_map(int option){
 	else if(option==NO_ARENA){
         for (int x = 1; x < START_AREA_HOR_SIZE; x++) {
             for (int y = 1; y < START_AREA_VER_SIZE; y++) {
-                map[x][y] = EMPTY;
+                map[y][x] = EMPTY;
             }
         }
 		for (i = 0; i < START_AREA_HOR_SIZE; ++i) {
