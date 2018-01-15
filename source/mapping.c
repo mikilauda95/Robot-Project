@@ -59,6 +59,10 @@ void* map_sender(void* what){
 
 	for (int yi = MAP_SIZE_Y-1; yi >= 0; yi--) {
         for (int xi = 0; xi < MAP_SIZE_X; xi++){
+			val = map[yi][xi];
+			if (STADIUM_TYPE == 0 && val == OBSTACLE) {
+				val = EMPTY;
+			}
 			send_message(queue_mapping_to_bt, MESSAGE_MAP_POINT, val);
         }
     }

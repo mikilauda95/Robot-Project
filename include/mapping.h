@@ -1,3 +1,5 @@
+#include "tuning.h"
+
 #define UNMAPPED 0
 #define EMPTY 1
 #define ROBOT_POSITION 2
@@ -10,6 +12,11 @@
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
 #define IS_EMPTY(tile) ((tile == EMPTY) || (tile == ROBOT_POSITION))
-#define IS_OBJECT(tile) ((tile >= OBSTACLE) || (tile == WALL))
+
+#if STADIUM_TYPE == 0
+	#define IS_OBJECT(tile) ((tile > OBSTACLE) || (tile == WALL))
+#else
+	#define IS_OBJECT(tile) ((tile >= OBSTACLE) || (tile == WALL))
+#endif
 
 void *mapping_start(void* queues);
