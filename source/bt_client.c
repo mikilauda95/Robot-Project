@@ -192,15 +192,17 @@ void* bt_client(void *queues){
 				switch(value) {
 					case EMPTY:
 					case ROBOT_POSITION:
+					case OBSTACLE:
+					case UNMAPPED:
 						r = 255;
 						g = 255;
 						b = 255;
 					break;
-					case UNMAPPED:
-						r = 255;
-						g = 0;
-						b = 0;
-					break;
+					// case UNMAPPED:
+					// 	r = 255;
+					// 	g = 0;
+					// 	b = 0;
+					// break;
 					case DROPPED_OBJECT:
 						r = 0;
 						g = 255;

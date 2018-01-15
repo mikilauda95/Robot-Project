@@ -12,13 +12,7 @@
 #define NO_ARENA 1
 #define SONAR_OFFSET 100 // Distance from rotation axis to the sonar in mm
 
-
-#if STADIUM_TYPE == 0
-	#define IS_EMPTY(tile) ((tile == EMPTY) || (tile == ROBOT_POSITION) || (tile == OBSTACLE))
-	#define IS_OBJECT(tile) ((tile > OBSTACLE) || (tile == WALL))
-#else
-	#define IS_EMPTY(tile) ((tile == EMPTY) || (tile == ROBOT_POSITION))
-	#define IS_OBJECT(tile) ((tile >= OBSTACLE) || (tile == WALL))
-#endif
+#define IS_EMPTY(tile) ((tile == EMPTY) || (tile == ROBOT_POSITION))
+#define IS_OBJECT(tile) ((tile >= OBSTACLE) || (tile == WALL))
 
 void *mapping_start(void* queues);
