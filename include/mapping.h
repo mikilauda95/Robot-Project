@@ -4,8 +4,6 @@
 #define ROBOT_POSITION 2
 #define DROPPED_OBJECT 3
 #define WALL 5
-#define HOR_WALL 6
-#define VER_WALL 7
 #define OBSTACLE 10
 
 #define ARENA 0
