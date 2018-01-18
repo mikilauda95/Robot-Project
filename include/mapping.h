@@ -1,4 +1,3 @@
-#define MAX_STRENGTH 100
 #define UNMAPPED 0
 #define EMPTY 1
 #define ROBOT_POSITION 2
