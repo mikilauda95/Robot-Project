@@ -28,17 +28,7 @@ int16_t drop_pair[2] = {-1, -1};
 mqd_t queue_from_main;
 mqd_t queue_mapping_to_main;
 
-void printMap(){
-	// We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
-	for (int i = MAP_SIZE_Y-1; i>=0; i--) {
-		for (int j=0; j<MAP_SIZE_X; j++){
-			printf("%d", map[i][j]);
-		}
-		printf("\n");
-	}
-}
-
-void printMap2(){
+void print_map(){
     // We use map[y][x] as in Matlab. We print the map 180 deg flipped for readability
     for (int i = MAP_SIZE_Y-1; i>=0; i--) {
         for (int j=0; j<MAP_SIZE_X; j++){
@@ -310,7 +300,7 @@ void message_handler(uint16_t command, int16_t value) {
 
 		break;
         case MESSAGE_PRINT_MAP:
-            printMap2();
+            print_map();
         break;
         case MESSAGE_DROP_X:
         case MESSAGE_DROP_Y:
@@ -318,8 +308,6 @@ void message_handler(uint16_t command, int16_t value) {
             if (drop_pair[0] != -1 && drop_pair[1] != -1) {
                 obj_x=(int)(drop_pair[0]/TILE_SIZE + 0.5);
                 obj_y=(int)(drop_pair[1]/TILE_SIZE + 0.5);
-                printf("%d, %d --> %d, %d \n", obj_x, obj_y, drop_pair[0], drop_pair[1]);
-
                 map[obj_y][obj_x]=DROPPED_OBJECT;
                 drop_pair[0] = -1;
                 drop_pair[1] = -1;

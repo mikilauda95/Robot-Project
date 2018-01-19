@@ -152,15 +152,7 @@ void stop(){
 	set_tacho_command_inx(motor[R], TACHO_STOP);
 }
 
-void forward(){
-	do_track_position = true;
-	do_sweep_sonar = true;
-    set_tacho_speed_sp(motor[L], FORWARD_SPEED );
-    set_tacho_speed_sp(motor[R], FORWARD_SPEED );
-	set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
-	set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
-}
-void forward2(int distance){
+void forward(int distance){
 	do_track_position = true;
 	do_sweep_sonar = true;
 	int tics = (distance * COUNT_PER_ROT)/(2*M_PI * WHEEL_RADIUS);
@@ -170,10 +162,7 @@ void forward2(int distance){
 	set_tacho_position_sp(motor[R], tics);
 	set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
 	set_tacho_command_inx(motor[R], TACHO_RUN_TO_REL_POS);
-}
-
-
-	
+}	
 
 void turn_degrees(float angle, int speed) {
 	// Turn more slowly if the angle in small
@@ -187,50 +176,6 @@ void turn_degrees(float angle, int speed) {
     set_tacho_command_inx(motor[L], TACHO_RUN_TO_REL_POS);
 	wait_for_motor(motor[L]);
 
-}
-
-void turn_degrees_gyro(float delta, int angle_speed, mqd_t sensor_queue) {
-
-	uint16_t command;
-	int16_t current_angle;
-	get_message(sensor_queue, &command, &current_angle);
-	
-	float target = current_angle + delta;
-
-	if (delta > 0) {
-		set_tacho_speed_sp( motor[L], angle_speed );
-		set_tacho_speed_sp( motor[R], -angle_speed );
-		/*multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);*/
-        set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
-        set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
-	}
-	else {
-		set_tacho_speed_sp( motor[L], -angle_speed );
-		set_tacho_speed_sp( motor[R], angle_speed );
-		/*multi_set_tacho_command_inx(motor, TACHO_RUN_FOREVER);*/
-        set_tacho_command_inx(motor[R], TACHO_RUN_FOREVER);
-        set_tacho_command_inx(motor[L], TACHO_RUN_FOREVER);
-	}
-
-	for (;;) {
-		get_message(sensor_queue, &command, &current_angle);
-		
-		if (delta < 0) {
-			if (current_angle < target) {
-				set_tacho_command_inx(motor[L], TACHO_STOP);
-				set_tacho_command_inx(motor[R], TACHO_STOP);
-				break;
-			}
-		}else {
-			if (current_angle > (target - 5) ){
-				set_tacho_command_inx(motor[L], TACHO_STOP);
-				set_tacho_command_inx(motor[R], TACHO_STOP);
-				break;
-			}
-		}
-
-	}
-	
 }
 
 void drop_object()
@@ -285,7 +230,7 @@ void *movement_start(void* queues) {
 			break;
 			
 			case MESSAGE_FORWARD:
-				forward2(target_dist);
+				forward(target_dist);
 			break;
 			case MESSAGE_TARGET_DISTANCE:
 				target_dist = value;
