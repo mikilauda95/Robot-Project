@@ -74,6 +74,29 @@ int distance_to_nonempty_tile(float ang, int8_t *tile) {
 	}
 }
 
+ 
+ void readjust_to_walls(int x, int y){
+     int i;
+     //calibrate to vertical walls
+     for (i = -1; i <= 1; ++i) {
+         if (map[y][x+2-i]==WALL) {
+             printf("readjusted with vertical wall when reading %d %d and it was %d close \n", x, y, i);
+             printf("X coordinate before readjustement= %d\n", robot_x);
+             robot_x +=(i)*50;
+             printf("X coordinate after readjustement= %d\n", robot_x);
+         }
+     } 
+     //calibrate to horizontal walls
+     for (i = -2; i <= 2; ++i) {
+         if (map[y+i][x]==WALL) {
+             printf("readjusted with horizontal wall when reading %d %d and it was %d close \n", x, y, i);
+             printf("Y coordinate before readjustement= %d\n", robot_y);
+             robot_y+=(i)*50;
+             printf("Y coordinate after readjustement= %d\n", robot_y);
+         }
+     }
+ }
+
 void update_map(float ang, int dist){
     int x, y;   
     for (int i = 0; i < (dist>MAX_SCAN_DIST?MAX_SCAN_DIST:dist); i+=TILE_SIZE) {
